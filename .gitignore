@@ -37,6 +37,7 @@ project.fragment.lock.json
 # =========================
 *.env
 .env.*
+!.env*.example
 appsettings.*.local.json
 appsettings.Development.json
 secrets.json

@@ -19,6 +19,7 @@ This file stays short on purpose (see [Keeping this file lean](#keeping-this-fil
 | [docs/architecture-principles.md](./docs/architecture-principles.md) | deciding where a piece of logic belongs (controller/component vs service/hook vs shared) |
 | [docs/library-usage-policy.md](./docs/library-usage-policy.md) | about to write infrastructure-y code — check this before reinventing something |
 | [docs/mobile-strategy.md](./docs/mobile-strategy.md) | touching anything platform-related — why Capacitor, what plugins, how the native boundary is kept thin |
+| [docs/solution-structure.md](./docs/solution-structure.md) | looking for where something lives — backend/frontend folder layout, per-feature conventions, commands |
 | [docs/configuration-and-secrets.md](./docs/configuration-and-secrets.md) | adding any config value, connection string, or API key (backend or frontend) |
 | [docs/git-and-github-setup.md](./docs/git-and-github-setup.md) | committing, pushing, or setting up the GitHub remote |
 
@@ -43,6 +44,7 @@ This file is a map and a short list of standing rules — not a place for detail
 
 ## Repo structure & commands
 
-- `frontend/` — the React/TypeScript app (Vite). Scaffolded; see [docs/frontend-design-system.md](./docs/frontend-design-system.md) for what's already wired up.
-  - `npm run dev` — dev server · `npm test` — Vitest · `npm run lint` — ESLint · `npm run build` — type-check + production build
-- `backend/` — the ASP.NET Core solution. **Not scaffolded yet.** Once it is, add its commands here and add `docs/solution-structure.md` if the layout needs more than a line or two.
+- `frontend/` — React/TypeScript app (Vite). `npm run dev` · `npm test` · `npm run lint` · `npm run build`
+- `backend/` — ASP.NET Core solution (Domain/Application/Infrastructure/Api + matching test projects). `dotnet build` · `dotnet test` · `dotnet run --project src/CrmTask.Api`
+
+First real vertical slice built end-to-end (backend + frontend, TDD throughout): **Customers** — create + list, with real SQL Server (LocalDB) persistence. Use it as the template for the next module. Details: [docs/solution-structure.md](./docs/solution-structure.md).

@@ -1,0 +1,43 @@
+# Backend-specific overrides layered on top of the repo-root .editorconfig.
+# See ../docs/coding-standards.md for the reasoning.
+
+[*.cs]
+# SA1101/SA1309 conflict with our _camelCase-private-field, no-"this."-qualification
+# convention (coding-standards.md) — disabled rather than fought.
+dotnet_diagnostic.SA1101.severity = none
+dotnet_diagnostic.SA1309.severity = none
+
+# No mandatory file header banner.
+dotnet_diagnostic.SA1633.severity = none
+
+# Our doc policy is "public API gets XML docs" (see coding-standards.md), not
+# "every element" — stylecop.json's documentPrivateElements/Fields=false already
+# covers most of this; these two cover the remaining noisy element-level checks.
+dotnet_diagnostic.SA1600.severity = suggestion
+dotnet_diagnostic.SA1602.severity = suggestion
+
+# ImplicitUsings + file-scoped namespaces make some layout rules moot.
+dotnet_diagnostic.SA1200.severity = none
+csharp_style_namespace_declarations = file_scoped:warning
+
+# StyleCop.Analyzers 1.1.118 predates full support for several modern C# features
+# and misfires on idiomatic syntax rather than anything we'd actually want flagged:
+# - SA1313 treats `record`/primary-constructor parameters as regular parameters,
+#   so it flags their conventional PascalCase (they become public properties).
+# - SA1009 misparses the space before `:` in a primary-constructor base list
+#   (e.g. `class Foo(IBar bar) : IFoo`).
+# - SA1000 wants a space between `new` and `(` even for target-typed `new()`,
+#   which is the opposite of the accepted convention for that feature.
+# - SA1010 misparses `[]` collection expressions (e.g. `x ?? []`) as an indexer.
+# - SA1516 fires on the compiler-synthesized boundary between top-level statements
+#   and the `public partial class Program` marker needed for WebApplicationFactory
+#   in integration tests — nothing in our own code to fix here.
+dotnet_diagnostic.SA1313.severity = none
+dotnet_diagnostic.SA1009.severity = none
+dotnet_diagnostic.SA1000.severity = none
+dotnet_diagnostic.SA1010.severity = none
+dotnet_diagnostic.SA1516.severity = none
+
+# EF Core migrations are generated, not hand-written — don't hold them to our style rules.
+[**/Migrations/*.cs]
+generated_code = true

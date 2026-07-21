@@ -11,6 +11,7 @@ Detailed rules and decisions live here as focused, single-topic files. `CLAUDE.m
 | [architecture-principles.md](./architecture-principles.md) | Layering for backend *and* frontend, thin controllers/components, where shared logic goes |
 | [library-usage-policy.md](./library-usage-policy.md) | Don't reinvent the wheel — pre-approved libraries per concern, backend and frontend |
 | [mobile-strategy.md](./mobile-strategy.md) | The mobile app is mandatory — why Capacitor, what plugins are needed, architectural impact |
+| [solution-structure.md](./solution-structure.md) | Actual backend/frontend folder layout, per-feature conventions, build/test/run commands |
 | [configuration-and-secrets.md](./configuration-and-secrets.md) | user-secrets, environment variables, Vite env vars, what never gets committed |
 | [git-and-github-setup.md](./git-and-github-setup.md) | `.gitignore` rationale, GitHub remote setup steps |
 
