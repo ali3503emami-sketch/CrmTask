@@ -32,11 +32,14 @@ csharp_style_namespace_declarations = file_scoped:warning
 # - SA1516 fires on the compiler-synthesized boundary between top-level statements
 #   and the `public partial class Program` marker needed for WebApplicationFactory
 #   in integration tests — nothing in our own code to fix here.
+# - SA1008 wants no space before `(` but misfires on the `is not (a or b)`
+#   parenthesized pattern-matching combinator (C# 9+).
 dotnet_diagnostic.SA1313.severity = none
 dotnet_diagnostic.SA1009.severity = none
 dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1010.severity = none
 dotnet_diagnostic.SA1516.severity = none
+dotnet_diagnostic.SA1008.severity = none
 
 # EF Core migrations are generated, not hand-written — don't hold them to our style rules.
 [**/Migrations/*.cs]

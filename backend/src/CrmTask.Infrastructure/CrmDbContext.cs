@@ -1,6 +1,8 @@
 using CrmTask.Domain.Contacts;
 using CrmTask.Domain.Contracts;
 using CrmTask.Domain.Customers;
+using CrmTask.Domain.Staff;
+using CrmTask.Domain.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrmTask.Infrastructure;
@@ -12,6 +14,10 @@ public class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbContext(op
     public DbSet<Contact> Contacts => Set<Contact>();
 
     public DbSet<Contract> Contracts => Set<Contract>();
+
+    public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
+
+    public DbSet<TaskItem> Tasks => Set<TaskItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

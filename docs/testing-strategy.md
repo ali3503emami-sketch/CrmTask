@@ -41,6 +41,8 @@ MSW setup convention: a `handlers.ts` file per feature holds the "happy path" re
 
 Test naming mirrors the backend convention: describe behavior, not implementation — `"shows the contract-expiry banner when a contract ends within 7 days"`, not `"renders correctly"`.
 
+**Test timeout is 15s** (`vite.config.ts`'s `test.testTimeout`), not Vitest's 5s default. Multi-step interactions (type several form fields, open an antd `Select`, wait for a mutation to round-trip through MSW) reliably passed in isolation but timed out at 5s when the *whole* suite ran together under load — this was a real flaky-test cause, not a logic bug, confirmed by running the failing file alone (green) vs. the full suite (red). If a new test times out only under the full-suite run, suspect load/timing before suspecting the test's logic.
+
 ## What must have tests
 
 - Every service/use-case class in the Application layer (business rules — contracts expiring, checklist validation, task assignment, etc.).

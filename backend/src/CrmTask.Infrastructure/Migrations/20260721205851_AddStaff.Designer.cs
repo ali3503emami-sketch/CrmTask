@@ -4,6 +4,7 @@ using CrmTask.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CrmTask.Infrastructure.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260721205851_AddStaff")]
+    partial class AddStaff
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,43 +140,6 @@ namespace CrmTask.Infrastructure.Migrations
                     b.ToTable("StaffMembers");
                 });
 
-            modelBuilder.Entity("CrmTask.Domain.Tasks.TaskItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("AssignedToStaffId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTimeOffset>("DueAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedToStaffId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("Tasks");
-                });
-
             modelBuilder.Entity("CrmTask.Domain.Contacts.Contact", b =>
                 {
                     b.HasOne("CrmTask.Domain.Customers.Customer", null)
@@ -190,60 +156,6 @@ namespace CrmTask.Infrastructure.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("CrmTask.Domain.Tasks.TaskItem", b =>
-                {
-                    b.HasOne("CrmTask.Domain.Staff.StaffMember", null)
-                        .WithMany()
-                        .HasForeignKey("AssignedToStaffId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CrmTask.Domain.Customers.Customer", null)
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.OwnsMany("CrmTask.Domain.Tasks.ChecklistItem", "ChecklistItems", b1 =>
-                        {
-                            b1.Property<Guid>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("FieldType")
-                                .IsRequired()
-                                .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)");
-
-                            b1.Property<string>("Label")
-                                .IsRequired()
-                                .HasMaxLength(300)
-                                .HasColumnType("nvarchar(300)");
-
-                            b1.Property<Guid>("TaskItemId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("Value")
-                                .HasMaxLength(2000)
-                                .HasColumnType("nvarchar(2000)");
-
-                            b1.Property<string>("_options")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("OptionsJson");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("TaskItemId");
-
-                            b1.ToTable("TaskChecklistItems", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("TaskItemId");
-                        });
-
-                    b.Navigation("ChecklistItems");
                 });
 #pragma warning restore 612, 618
         }

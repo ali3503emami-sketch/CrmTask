@@ -27,7 +27,15 @@ Each layer groups its own files by feature, not by technical type — e.g. `CrmT
 
 `Contract` is a good reference for **derived, not stored, status**: `ContractStatus` (Active/ExpiringSoon/Ended) is computed from `EndDate` against "today" every time, via `Contract.GetStatus(DateOnly today)` — never persisted, so it can't go stale. "Today" is injected as a `TimeProvider` (registered as `TimeProvider.System` in `Program.cs`), not read from `DateTime.Now` directly, specifically so tests can fix it (see `CrmTask.Application.Tests/TestSupport/FakeTimeProvider.cs`) instead of being flaky around whatever day they happen to run on. Any other module with a similar "is this thing due/expiring" concept (task due dates, contract-adjacent reminders) should follow the same pattern.
 
-Cross-feature references go through the *parent's* service, not the repository directly — e.g. `ContactsController` checks `ICustomerService.GetByIdAsync` (not `ICustomerRepository`) to confirm the parent customer exists before creating/listing a contact. Keeps the dependency direction feature → feature's own service, not feature → another feature's persistence details.
+Cross-feature references go through the *parent's* service, not the repository directly — e.g. `ContactsController` checks `ICustomerService.GetByIdAsync` (not `ICustomerRepository`) to confirm the parent customer exists before creating/listing a contact. Keeps the dependency direction feature → feature's own service, not feature → another feature's persistence details. `TasksController` follows the same rule with *two* parents: `IStaffService` (always — a task must be assigned) and `ICustomerService` (only when `CustomerId` is provided, since a task can be purely internal).
+
+### `TaskItem`'s dynamic checklist — the reference for "owned collection with a private backing field"
+
+`ChecklistItem` (child of `TaskItem`) models the scenario's "چک‌باکس، کشو، لیست‌باکس، تکست‌باکس" requirement: one `FieldType` enum plus a single `Value` string, so a task's checklist can mix arbitrary field types without a schema change per type. Two things about how it's built are worth knowing before extending it:
+
+- **`ChecklistItem.Options` and `TaskItem.ChecklistItems` are read-only properties** (`IReadOnlyList<T>`) backed by private `List<T>` fields (`_options`, `_checklistItems`) — the domain model never exposes a way to mutate the collection from outside except through the entity's own methods (`SetValue`, `SetChecklistItemValue`). EF Core finds these backing fields automatically by naming convention (`_options` for `Options`, etc.); see `TaskItemEntityConfiguration` in Infrastructure for the `OwnsMany` + field-based `Options` column (stored as a single JSON string column via a value converter + explicit `ValueComparer`, not a further child table — simpler than a 4th table for what's just a handful of strings).
+- **Validation of `Value` lives in `ChecklistItem.SetValue`**, keyed off `FieldType` (checkbox must be "true"/"false"; dropdown/listbox must be one of `Options`; textbox accepts anything) — this is the same "invariants belong to the entity, not the caller" rule as everywhere else, just applied to a field that changes shape based on another field's value.
+- **`TaskService`'s mutation methods (`MarkAsDoneAsync`, `ReassignAsync`, `SetChecklistItemValueAsync`) all follow load → mutate → `SaveChangesAsync`**, unlike the create-only repositories elsewhere — `ITaskRepository.GetByIdAsync` deliberately returns a *change-tracked* entity (not `AsNoTracking()`) for this reason. If a future module needs similar in-place mutation (not just create+read), follow this same repository shape rather than inventing a new one.
 
 ### Commands
 
@@ -68,6 +76,20 @@ frontend/
         # antd's DatePicker — deliberate, to avoid Jalali/Gregorian locale
         # parsing ambiguity now that ConfigProvider is set to fa_IR. Revisit
         # once a real Jalali-aware date picker is chosen (not decided yet).
+      staff/
+        # Minimal: list + create only, no detail page. Exists to populate the
+        # assignee dropdown on TasksPage — not a login/auth system. See
+        # docs/configuration-and-secrets.md and the auth discussion in
+        # CLAUDE.md's history for why real authentication is a separate,
+        # deliberately-not-yet-built piece of work.
+      tasks/
+        # A top-level page (its own tab in App.tsx), not nested under Customers
+        # — a task can be internal (customerId: null) or tied to a customer.
+        # TasksPage.tsx builds the checklist template at creation time via
+        # antd's Form.List (a dynamic array of {label, fieldType, options});
+        # ChecklistPanel.tsx is the separate Drawer for *filling in* an
+        # existing task's checklist values, one input per FieldType (Checkbox,
+        # Select for Dropdown, Radio.Group for ListBox, Input for TextBox).
     test/
       setup.ts             # jest-dom, matchMedia mock, RTL cleanup, MSW server lifecycle
       mocks/
