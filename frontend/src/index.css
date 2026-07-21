@@ -1,0 +1,23 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Vazirmatn Variable',
+    'Vazirmatn',
+    Tahoma,
+    'Segoe UI',
+    sans-serif;
+}

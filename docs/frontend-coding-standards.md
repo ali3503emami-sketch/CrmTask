@@ -2,6 +2,8 @@
 
 The same principle as the backend: follow established, widely-adopted conventions rather than inventing our own. See [coding-standards.md](./coding-standards.md) for the backend equivalent — this file is its frontend counterpart, held to the same rigor.
 
+For visual/component conventions (which library, density, RTL, theme tokens), see [frontend-design-system.md](./frontend-design-system.md) — this file covers code style, that one covers UI decisions.
+
 ## Primary references
 
 - **[Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)** (incl. its [React/JSX section](https://github.com/airbnb/javascript/tree/master/react)) — one of the most widely adopted style guides in the JS ecosystem, enforced via `eslint-config-airbnb` (4,400+ dependent projects). Our default for formatting, component structure, and JSX conventions.

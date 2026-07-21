@@ -20,6 +20,7 @@ Use these unless there's a specific reason not to — don't re-litigate the choi
 | API documentation | **Swashbuckle (Swagger/OpenAPI)** | Auto-generated from controllers/DTOs — don't hand-write API docs that will drift. |
 | HTTP resilience (OCR service, SMS gateway calls) | **Polly** | Retry/circuit-breaker around any external HTTP call (SMS gateway, OCR microservice). |
 | Testing | xUnit, Moq, FluentAssertions | See [testing-strategy.md](./testing-strategy.md). |
+| Frontend UI components | **Ant Design (antd)** | Chosen specifically for dense, RTL, enterprise-admin-style screens. See [frontend-design-system.md](./frontend-design-system.md) — this is a firm decision, not an open question. |
 | Frontend data fetching | **TanStack Query** | Don't hand-roll fetch/cache/loading-state logic in components. |
 | Frontend forms | **React Hook Form** + a schema validator (Zod) | Needed for the dynamic checklist builder's varied field types. |
 | Frontend API mocking (tests) | **MSW (Mock Service Worker)** | See [testing-strategy.md](./testing-strategy.md) — the 2026-standard way to test components against a fake network layer instead of hand-mocking `fetch`. |

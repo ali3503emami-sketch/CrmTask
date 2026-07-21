@@ -6,6 +6,7 @@ Detailed rules and decisions live here as focused, single-topic files. `CLAUDE.m
 |---|---|
 | [coding-standards.md](./coding-standards.md) | C# naming, formatting, comment discipline, StyleCop/.editorconfig enforcement |
 | [frontend-coding-standards.md](./frontend-coding-standards.md) | React/TypeScript naming, component structure, Airbnb style guide, ESLint/Prettier enforcement |
+| [frontend-design-system.md](./frontend-design-system.md) | UI decision record — Ant Design, compact/RTL theme, Vazirmatn font, what "refined despite density" means in practice |
 | [testing-strategy.md](./testing-strategy.md) | TDD workflow for both backend (xUnit/Moq/FluentAssertions) and frontend (Vitest/RTL/MSW) |
 | [architecture-principles.md](./architecture-principles.md) | Layering for backend *and* frontend, thin controllers/components, where shared logic goes |
 | [library-usage-policy.md](./library-usage-policy.md) | Don't reinvent the wheel — pre-approved libraries per concern, backend and frontend |

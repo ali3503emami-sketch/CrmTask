@@ -14,6 +14,7 @@ This file stays short on purpose (see [Keeping this file lean](#keeping-this-fil
 |---|---|
 | [docs/coding-standards.md](./docs/coding-standards.md) | writing any C# — naming, comments, formatting, analyzer setup |
 | [docs/frontend-coding-standards.md](./docs/frontend-coding-standards.md) | writing any React/TypeScript — naming, component structure, ESLint/Prettier setup |
+| [docs/frontend-design-system.md](./docs/frontend-design-system.md) | building any UI — Ant Design, compact/RTL theme, density conventions (this is a firm decision) |
 | [docs/testing-strategy.md](./docs/testing-strategy.md) | writing **any** code — TDD is mandatory, this is the workflow and toolchain (backend and frontend) |
 | [docs/architecture-principles.md](./docs/architecture-principles.md) | deciding where a piece of logic belongs (controller/component vs service/hook vs shared) |
 | [docs/library-usage-policy.md](./docs/library-usage-policy.md) | about to write infrastructure-y code — check this before reinventing something |
@@ -42,4 +43,6 @@ This file is a map and a short list of standing rules — not a place for detail
 
 ## Repo structure & commands
 
-Not filled in yet — there's no solution scaffolded. Once it is, add a `docs/solution-structure.md` (folder layout, project names) and a `docs/commands.md` or a section here with the actual `dotnet build` / `dotnet test` / `npm run dev` commands, and link it from the table above.
+- `frontend/` — the React/TypeScript app (Vite). Scaffolded; see [docs/frontend-design-system.md](./docs/frontend-design-system.md) for what's already wired up.
+  - `npm run dev` — dev server · `npm test` — Vitest · `npm run lint` — ESLint · `npm run build` — type-check + production build
+- `backend/` — the ASP.NET Core solution. **Not scaffolded yet.** Once it is, add its commands here and add `docs/solution-structure.md` if the layout needs more than a line or two.
