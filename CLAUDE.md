@@ -47,4 +47,4 @@ This file is a map and a short list of standing rules — not a place for detail
 - `frontend/` — React/TypeScript app (Vite). `npm run dev` · `npm test` · `npm run lint` · `npm run build`
 - `backend/` — ASP.NET Core solution (Domain/Application/Infrastructure/Api + matching test projects). `dotnet build` · `dotnet test` · `dotnet run --project src/CrmTask.Api`
 
-First real vertical slice built end-to-end (backend + frontend, TDD throughout): **Customers** — create + list, with real SQL Server (LocalDB) persistence. Use it as the template for the next module. Details: [docs/solution-structure.md](./docs/solution-structure.md).
+Vertical slices built end-to-end so far (backend + frontend, TDD throughout), with real SQL Server (LocalDB) persistence: **Customers** (create + list) and **Contacts** (per-customer contact log with an optional follow-up reminder date, opened from a row action). Use these as the template for the next module. Details: [docs/solution-structure.md](./docs/solution-structure.md).

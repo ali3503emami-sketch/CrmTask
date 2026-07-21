@@ -4,25 +4,12 @@ import type { ColumnsType } from 'antd/es/table'
 import { useCustomers } from './useCustomers'
 import { useCreateCustomer } from './useCreateCustomer'
 import type { Customer, CustomerCategory } from './types'
+import { ContactsPanel } from '../contacts/ContactsPanel'
 
 const categoryLabel: Record<CustomerCategory, { text: string; color: string }> = {
   Legal: { text: 'حقوقی', color: 'blue' },
   Individual: { text: 'حقیقی', color: 'default' },
 }
-
-const columns: ColumnsType<Customer> = [
-  { title: 'نام مشتری', dataIndex: 'name', key: 'name' },
-  {
-    title: 'دسته‌بندی',
-    dataIndex: 'category',
-    key: 'category',
-    width: 110,
-    render: (category: CustomerCategory) => (
-      <Tag color={categoryLabel[category].color}>{categoryLabel[category].text}</Tag>
-    ),
-  },
-  { title: 'تلفن', dataIndex: 'phone', key: 'phone', width: 150 },
-];
 
 interface CreateCustomerFormValues {
   name: string
@@ -35,12 +22,37 @@ export function CustomersPage() {
   const createCustomer = useCreateCustomer()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form] = Form.useForm<CreateCustomerFormValues>()
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const handleSubmit = async (values: CreateCustomerFormValues) => {
     await createCustomer.mutateAsync(values)
     form.resetFields()
     setIsModalOpen(false)
   }
+
+  const columns: ColumnsType<Customer> = [
+    { title: 'نام مشتری', dataIndex: 'name', key: 'name' },
+    {
+      title: 'دسته‌بندی',
+      dataIndex: 'category',
+      key: 'category',
+      width: 110,
+      render: (category: CustomerCategory) => (
+        <Tag color={categoryLabel[category].color}>{categoryLabel[category].text}</Tag>
+      ),
+    },
+    { title: 'تلفن', dataIndex: 'phone', key: 'phone', width: 150 },
+    {
+      title: 'عملیات',
+      key: 'actions',
+      width: 110,
+      render: (_, customer) => (
+        <Button size="small" onClick={() => setSelectedCustomer(customer)}>
+          تماس‌ها
+        </Button>
+      ),
+    },
+  ]
 
   return (
     <div>
@@ -97,6 +109,15 @@ export function CustomersPage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {selectedCustomer && (
+        <ContactsPanel
+          customerId={selectedCustomer.id}
+          customerName={selectedCustomer.name}
+          open={selectedCustomer !== null}
+          onClose={() => setSelectedCustomer(null)}
+        />
+      )}
     </div>
   )
 }

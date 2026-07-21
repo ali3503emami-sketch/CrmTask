@@ -16,6 +16,14 @@ afterEach(() => {
 })
 afterAll(() => server.close())
 
+// jsdom doesn't implement ResizeObserver; Ant Design's Drawer/portal components need it.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver = ResizeObserverStub
+
 // jsdom doesn't implement matchMedia; Ant Design's responsive grid hooks need it.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

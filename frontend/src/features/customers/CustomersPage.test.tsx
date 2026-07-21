@@ -37,4 +37,14 @@ describe('CustomersPage', () => {
       expect(await screen.findAllByText('مهندس رضا کیانی')).not.toHaveLength(0)
     })
   })
+
+  it('opens the contacts panel for a customer via the row action', async () => {
+    renderPage()
+    await screen.findAllByText(sampleCustomers[0].name)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'تماس‌ها' }))
+
+    expect(await screen.findByText(`تماس‌های ${sampleCustomers[0].name}`)).toBeInTheDocument()
+  })
 })

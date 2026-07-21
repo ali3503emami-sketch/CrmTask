@@ -23,7 +23,9 @@ backend/
 
 ### Per-feature layout inside each layer
 
-Each layer groups its own files by feature, not by technical type — e.g. `CrmTask.Domain/Customers/`, `CrmTask.Application/Customers/`, `CrmTask.Infrastructure/Customers/`. When the Contracts, Tasks, etc. modules are built, they get their own sibling folders the same way — this mirrors the frontend's `src/features/` convention.
+Each layer groups its own files by feature, not by technical type — e.g. `CrmTask.Domain/Customers/`, `CrmTask.Application/Customers/`, `CrmTask.Infrastructure/Customers/` (and the same for `Contacts/`). When Contracts, Tasks, etc. are built, they get their own sibling folders the same way — this mirrors the frontend's `src/features/` convention.
+
+Cross-feature references go through the *parent's* service, not the repository directly — e.g. `ContactsController` checks `ICustomerService.GetByIdAsync` (not `ICustomerRepository`) to confirm the parent customer exists before creating/listing a contact. Keeps the dependency direction feature → feature's own service, not feature → another feature's persistence details.
 
 ### Commands
 
@@ -54,6 +56,10 @@ frontend/
         useCreateCustomer.ts  # TanStack Query mutation hook (write)
         CustomersPage.tsx     # The actual page — table + create-customer modal
         CustomersPage.test.tsx
+      contacts/
+        # Same shape as customers/. ContactsPanel is a Drawer opened from a
+        # row action on CustomersPage — the pattern for any "sub-feature tied
+        # to a parent record" (e.g. a customer's contracts, later).
     test/
       setup.ts             # jest-dom, matchMedia mock, RTL cleanup, MSW server lifecycle
       mocks/
