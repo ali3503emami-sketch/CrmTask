@@ -31,6 +31,20 @@ Concretely, for this CRM: contract-expiry logic, checklist-template validation, 
 - Don't hand-roll something the framework or a well-tested package already does well (mapping, validation, retry policies, pagination) — see the library policy doc.
 - Three near-identical lines inline are fine. A third near-identical *method* is a signal to extract a shared one.
 
+## The same layering applies to the frontend
+
+```
+Components (presentational)  → JSX/markup and layout only. No fetching, no business rules.
+   ↓
+Hooks (feature logic)        → useContractExpiry(), useChecklistValidation(), etc. This is where logic lives.
+   ↓
+API layer (src/shared/api)   → Typed request functions (via TanStack Query) wrapping the backend endpoints.
+```
+
+A component should read like a template: given this data and these callbacks, render this. If a component has `if/else` business rules, direct `fetch`/`axios` calls, or duplicate data-shaping logic, that belongs in a hook instead — this is the frontend's version of "no logic in controllers."
+
+**No duplicated logic across components**, same as the backend rule: if two feature components both need to compute "is this contract expiring soon," that check lives in one shared hook or utility in `src/shared`, not copy-pasted into both components. See [frontend-coding-standards.md](./frontend-coding-standards.md) for file/folder conventions.
+
 ## As the project grows
 
 This file describes principles, not the current folder tree. Once the solution is scaffolded, add a `docs/solution-structure.md` documenting the actual projects/folders, and link it from `CLAUDE.md`. Keep this principles file about *rules*, and the structure file about *what exists*.

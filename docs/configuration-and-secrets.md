@@ -23,6 +23,14 @@ Environment variable naming: since `:` isn't valid in env var names on all platf
 3. In production/staging, set the equivalent environment variables on the host (or, once budget allows, move to a proper secret store).
 4. Double-check `.gitignore` covers `appsettings.Development.json` **if** it ever ends up holding anything sensitive — by default it shouldn't need to, since user-secrets exists precisely so this file doesn't have to.
 
+## Frontend (React/Vite) config — a different set of rules
+
+**Anything in a Vite frontend `.env` file gets baked into the public JS bundle at build time.** There is no such thing as a "frontend secret" — if it's reachable from `import.meta.env.VITE_*`, an end user can read it by opening dev tools. So:
+
+- Frontend `.env` files (`.env`, `.env.production`, prefixed `VITE_*`) are for **non-secret, environment-specific config only**: the API base URL, a public feature-flag value, the Google OAuth *client ID* (client IDs are public by design, unlike client secrets).
+- Anything actually sensitive (Google OAuth client **secret**, SMS gateway keys, database credentials) stays server-side only, behind a backend endpoint the frontend calls — it never has a `VITE_` counterpart.
+- Frontend `.env*` files are still gitignored (see `.gitignore`) as a matter of hygiene and to keep per-environment URLs out of source, even though their contents aren't secret — this avoids a committed `.env` silently pointing every developer at the wrong API URL.
+
 ## What this means for this CRM specifically
 
 The SQL Server connection string, the SMS gateway API key (Kavenegar/Melipayamak/IPPanel), and the Google OAuth client secret are exactly the kind of values that go through user-secrets locally and environment variables in deployment — never into `appsettings.json`.

@@ -4,7 +4,7 @@
 
 Before writing any non-trivial piece of infrastructure code (parsing, retry/backoff, validation, mapping, scheduling, PDF/Excel generation, OCR, HTTP resilience), check whether a well-established, actively-maintained package already does it. Only write it by hand if no suitable package exists or the need is truly one line of logic.
 
-"Well-established" means: widely used in the .NET community, actively maintained, and ideally listed in a curated collection such as **[quozd/awesome-dotnet](https://github.com/quozd/awesome-dotnet)** (the original and most-forked curated .NET library list) — check there first when unsure what the community-standard choice is for a given concern.
+"Well-established" means: widely used in the community, actively maintained, and ideally listed in a curated collection — **[quozd/awesome-dotnet](https://github.com/quozd/awesome-dotnet)** for backend/.NET, **[brillout/awesome-react-components](https://github.com/brillout/awesome-react-components)** for React — check there first when unsure what the community-standard choice is for a given concern.
 
 ## Pre-approved defaults for this project
 
@@ -22,6 +22,9 @@ Use these unless there's a specific reason not to — don't re-litigate the choi
 | Testing | xUnit, Moq, FluentAssertions | See [testing-strategy.md](./testing-strategy.md). |
 | Frontend data fetching | **TanStack Query** | Don't hand-roll fetch/cache/loading-state logic in components. |
 | Frontend forms | **React Hook Form** + a schema validator (Zod) | Needed for the dynamic checklist builder's varied field types. |
+| Frontend API mocking (tests) | **MSW (Mock Service Worker)** | See [testing-strategy.md](./testing-strategy.md) — the 2026-standard way to test components against a fake network layer instead of hand-mocking `fetch`. |
+| Mobile packaging | **Capacitor** | Wraps the same responsive React app for iOS/Android instead of a separate codebase. See [mobile-strategy.md](./mobile-strategy.md) — this is a firm decision, not an open question. |
+| Linting (frontend) | **eslint-config-airbnb** + `eslint-plugin-jsx-a11y` + `typescript-eslint` | See [frontend-coding-standards.md](./frontend-coding-standards.md). |
 
 ## Adding a new dependency
 

@@ -32,7 +32,14 @@ Naming: `MethodUnderTest_Scenario_ExpectedResult` (e.g., `CreateContract_WhenEnd
 | Concern | Tool | Why |
 |---|---|---|
 | Test runner | **Vitest** | Fast, native ESM, drop-in Jest-compatible API for a Vite-based React app. |
-| Component testing | **React Testing Library** | Tests behavior from the user's perspective (queries by role/text), not implementation details. |
+| Component testing | **React Testing Library (RTL)** | Tests behavior from the user's perspective (`getByRole`, `getByLabelText`), never by class name or test-id when a better query exists. |
+| API mocking | **MSW (Mock Service Worker)** | Intercepts requests at the network layer — the component makes a real `fetch`/`axios` call that MSW intercepts, so the component under test never knows it's mocked. The 2026-standard replacement for hand-rolled `fetch` mocks. |
+
+Same TDD loop as the backend, applied to components and hooks: write the RTL test describing what the user should see/do first, watch it fail, then build the component until it passes.
+
+MSW setup convention: a `handlers.ts` file per feature holds the "happy path" responses most tests can rely on without extra setup; individual tests call `server.use(...)` only when testing an error/edge case. The same handlers double as fixtures for local dev and (later) Storybook, so the mock contract can't quietly drift from what tests assume.
+
+Test naming mirrors the backend convention: describe behavior, not implementation — `"shows the contract-expiry banner when a contract ends within 7 days"`, not `"renders correctly"`.
 
 ## What must have tests
 
