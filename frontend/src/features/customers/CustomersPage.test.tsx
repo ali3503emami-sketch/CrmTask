@@ -47,4 +47,14 @@ describe('CustomersPage', () => {
 
     expect(await screen.findByText(`تماس‌های ${sampleCustomers[0].name}`)).toBeInTheDocument()
   })
+
+  it('opens the contracts panel for a customer via the row action', async () => {
+    renderPage()
+    await screen.findAllByText(sampleCustomers[0].name)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'قراردادها' }))
+
+    expect(await screen.findByText(`قراردادهای ${sampleCustomers[0].name}`)).toBeInTheDocument()
+  })
 })

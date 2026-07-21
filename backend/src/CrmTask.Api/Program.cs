@@ -1,8 +1,10 @@
 using System.Text.Json.Serialization;
 using CrmTask.Application.Contacts;
+using CrmTask.Application.Contracts;
 using CrmTask.Application.Customers;
 using CrmTask.Infrastructure;
 using CrmTask.Infrastructure.Contacts;
+using CrmTask.Infrastructure.Contracts;
 using CrmTask.Infrastructure.Customers;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +27,9 @@ builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<IContactService, ContactService>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
+builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddValidatorsFromAssemblyContaining<CreateCustomerRequestValidator>();
 
 builder.Services.AddCors(options =>

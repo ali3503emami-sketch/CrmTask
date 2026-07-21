@@ -23,7 +23,9 @@ backend/
 
 ### Per-feature layout inside each layer
 
-Each layer groups its own files by feature, not by technical type — e.g. `CrmTask.Domain/Customers/`, `CrmTask.Application/Customers/`, `CrmTask.Infrastructure/Customers/` (and the same for `Contacts/`). When Contracts, Tasks, etc. are built, they get their own sibling folders the same way — this mirrors the frontend's `src/features/` convention.
+Each layer groups its own files by feature, not by technical type — e.g. `CrmTask.Domain/Customers/`, `CrmTask.Application/Customers/`, `CrmTask.Infrastructure/Customers/` (and the same for `Contacts/`, `Contracts/`). When Tasks, Correspondence, etc. are built, they get their own sibling folders the same way — this mirrors the frontend's `src/features/` convention.
+
+`Contract` is a good reference for **derived, not stored, status**: `ContractStatus` (Active/ExpiringSoon/Ended) is computed from `EndDate` against "today" every time, via `Contract.GetStatus(DateOnly today)` — never persisted, so it can't go stale. "Today" is injected as a `TimeProvider` (registered as `TimeProvider.System` in `Program.cs`), not read from `DateTime.Now` directly, specifically so tests can fix it (see `CrmTask.Application.Tests/TestSupport/FakeTimeProvider.cs`) instead of being flaky around whatever day they happen to run on. Any other module with a similar "is this thing due/expiring" concept (task due dates, contract-adjacent reminders) should follow the same pattern.
 
 Cross-feature references go through the *parent's* service, not the repository directly — e.g. `ContactsController` checks `ICustomerService.GetByIdAsync` (not `ICustomerRepository`) to confirm the parent customer exists before creating/listing a contact. Keeps the dependency direction feature → feature's own service, not feature → another feature's persistence details.
 
@@ -59,7 +61,13 @@ frontend/
       contacts/
         # Same shape as customers/. ContactsPanel is a Drawer opened from a
         # row action on CustomersPage — the pattern for any "sub-feature tied
-        # to a parent record" (e.g. a customer's contracts, later).
+        # to a parent record".
+      contracts/
+        # Same pattern as contacts/ — a second row-action Drawer (ContractsPanel)
+        # on CustomersPage. Date fields are plain "YYYY-MM-DD" text inputs, not
+        # antd's DatePicker — deliberate, to avoid Jalali/Gregorian locale
+        # parsing ambiguity now that ConfigProvider is set to fa_IR. Revisit
+        # once a real Jalali-aware date picker is chosen (not decided yet).
     test/
       setup.ts             # jest-dom, matchMedia mock, RTL cleanup, MSW server lifecycle
       mocks/
