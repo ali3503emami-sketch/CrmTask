@@ -46,7 +46,9 @@ dotnet run --project src/CrmTask.Api             # run the API (Swagger UI at /s
 dotnet ef migrations add <Name> --project src/CrmTask.Infrastructure --startup-project src/CrmTask.Api --output-dir Migrations
 ```
 
-Local dev connection string is set via `dotnet user-secrets` (see [configuration-and-secrets.md](./configuration-and-secrets.md)), not in `appsettings.json` — pointing at `(localdb)\MSSQLLocalDB`. Migrations apply automatically on startup in the Development environment only.
+Local dev connection string is set via `dotnet user-secrets` (see [configuration-and-secrets.md](./configuration-and-secrets.md)), not in `appsettings.json` — pointing at the real local SQL Server 2019 instance (`localhost`), browsable in SSMS, not LocalDB. Migrations apply automatically on startup in the Development environment only.
+
+Automated integration tests (`CrmTask.Api.IntegrationTests`) still target `(localdb)\MSSQLLocalDB` with a uniquely-named, auto-deleted database per run (see `CustomApiFactory`) — that's a deliberate, separate choice from the dev database above: tests want a disposable throwaway instance, not the one you're browsing in SSMS.
 
 ## Frontend (`frontend/`)
 

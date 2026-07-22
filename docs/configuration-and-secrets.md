@@ -34,3 +34,9 @@ Environment variable naming: since `:` isn't valid in env var names on all platf
 ## What this means for this CRM specifically
 
 The SQL Server connection string, the SMS gateway API key (Kavenegar/Melipayamak/IPPanel), and the Google OAuth client secret are exactly the kind of values that go through user-secrets locally and environment variables in deployment — never into `appsettings.json`.
+
+### Local dev database: a real SQL Server instance, not LocalDB
+
+This machine has two full SQL Server instances already installed and running as Windows services (not the lightweight per-user LocalDB): the default instance (SQL Server 2019 Standard, `localhost`) and a named instance `SQL2022` (SQL Server 2022 Enterprise **Evaluation** — evaluation licenses expire, so don't build anything long-term assuming that one stays available). `ConnectionStrings:Default` in user-secrets currently points at the **default instance** (`Server=localhost;Database=CrmTaskDb;Trusted_Connection=True;TrustServerCertificate=True`), by explicit choice over LocalDB specifically so the database is visible/browsable in SQL Server Management Studio (already installed) — connect there with server name `localhost` (or `.`) using Windows Authentication to see the same tables/rows the app uses.
+
+If a future session needs to switch back to LocalDB (e.g., a machine without a full SQL Server install), the only change needed is the connection string — `Server=(localdb)\MSSQLLocalDB;...` — no code changes, since both are the same EF Core SQL Server provider talking to the same engine family.
