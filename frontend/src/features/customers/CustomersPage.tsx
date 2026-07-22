@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, Card, Form, Input, Modal, Select, Space, Statistic, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useCustomers } from './useCustomers'
@@ -6,13 +6,33 @@ import { useCreateCustomer } from './useCreateCustomer'
 import type { Customer, CustomerCategory } from './types'
 import { ContactsPanel } from '../contacts/ContactsPanel'
 import { ContractsPanel } from '../contracts/ContractsPanel'
+import { CustomerProfilePanel } from './CustomerProfilePanel'
 
 const categoryLabel: Record<CustomerCategory, { text: string; color: string }> = {
   Legal: { text: 'حقوقی', color: 'blue' },
   Individual: { text: 'حقیقی', color: 'default' },
 }
 
-type ActivePanel = 'contacts' | 'contracts' | null
+type ActivePanel = 'contacts' | 'contracts' | 'profile' | null
+
+function matchesSearch(customer: Customer, query: string): boolean {
+  const haystack = [
+    customer.name,
+    categoryLabel[customer.category].text,
+    customer.phone,
+    customer.managerName,
+    customer.address,
+    customer.fax,
+    customer.notes,
+    customer.nationalId,
+    ...customer.personnel.flatMap((p) => [p.fullName, p.position, p.phone, p.mobile, p.email]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(query.toLowerCase())
+}
 
 interface CreateCustomerFormValues {
   name: string
@@ -27,6 +47,12 @@ export function CustomersPage() {
   const [form] = Form.useForm<CreateCustomerFormValues>()
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredCustomers = useMemo(
+    () => (customers ?? []).filter((c) => matchesSearch(c, searchQuery)),
+    [customers, searchQuery],
+  )
 
   const handleSubmit = async (values: CreateCustomerFormValues) => {
     await createCustomer.mutateAsync(values)
@@ -57,6 +83,9 @@ export function CustomersPage() {
       width: 180,
       render: (_, customer) => (
         <Space>
+          <Button size="small" onClick={() => openPanel(customer, 'profile')}>
+            ویرایش
+          </Button>
           <Button size="small" onClick={() => openPanel(customer, 'contacts')}>
             تماس‌ها
           </Button>
@@ -84,12 +113,19 @@ export function CustomersPage() {
       </Card>
 
       <Card size="small">
+        <Input.Search
+          placeholder="جستجو در نام، تلفن، مدیرعامل، آدرس، شماره ملی، پرسنل و..."
+          allowClear
+          style={{ marginBottom: 12 }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         <Table
           size="small"
           rowKey="id"
           loading={isLoading}
           columns={columns}
-          dataSource={customers}
+          dataSource={filteredCustomers}
           pagination={false}
         />
       </Card>
@@ -140,6 +176,10 @@ export function CustomersPage() {
           open={activePanel === 'contracts'}
           onClose={() => setActivePanel(null)}
         />
+      )}
+
+      {selectedCustomer && activePanel === 'profile' && (
+        <CustomerProfilePanel customer={selectedCustomer} open onClose={() => setActivePanel(null)} />
       )}
     </div>
   )

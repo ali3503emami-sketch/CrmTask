@@ -29,8 +29,10 @@ describe('ContractsPanel', () => {
 
     await user.type(screen.getByLabelText('عنوان قرارداد'), 'قرارداد پشتیبانی سالانه')
     await user.type(screen.getByLabelText('مبلغ (تومان)'), '50000000')
-    await user.type(screen.getByLabelText('تاریخ شروع'), '2026-01-01')
-    await user.type(screen.getByLabelText('تاریخ پایان'), '2026-12-31')
+    await user.click(screen.getByPlaceholderText('انتخاب تاریخ شروع'))
+    await user.click(screen.getByText('۵'))
+    await user.click(screen.getByPlaceholderText('انتخاب تاریخ پایان'))
+    await user.click(screen.getByText('۲۰'))
     await user.click(screen.getByRole('button', { name: 'ثبت قرارداد' }))
 
     await waitFor(async () => {

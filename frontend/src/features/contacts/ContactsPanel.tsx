@@ -1,5 +1,6 @@
-import { Button, DatePicker, Drawer, Empty, Form, Input, Select, Spin, Tag, Typography } from 'antd'
-import dayjs, { type Dayjs } from 'dayjs'
+import { Button, Drawer, Empty, Form, Input, Select, Spin, Tag, Typography } from 'antd'
+import dayjs from 'dayjs'
+import { PersianDateField } from '../../shared/date/PersianDateField'
 import { useContacts } from './useContacts'
 import { useCreateContact } from './useCreateContact'
 import type { ContactDirection } from './types'
@@ -14,7 +15,7 @@ const directionLabel: Record<ContactDirection, { text: string; color: string }> 
 interface LogContactFormValues {
   direction: ContactDirection
   summary: string
-  nextFollowUpAt: Dayjs | null
+  nextFollowUpAt: string | null
 }
 
 interface ContactsPanelProps {
@@ -34,7 +35,7 @@ export function ContactsPanel({ customerId, customerName, open, onClose }: Conta
       direction: values.direction,
       summary: values.summary,
       contactedAt: new Date().toISOString(),
-      nextFollowUpAt: values.nextFollowUpAt ? values.nextFollowUpAt.toISOString() : null,
+      nextFollowUpAt: values.nextFollowUpAt ? new Date(values.nextFollowUpAt).toISOString() : null,
     })
     form.resetFields()
   }
@@ -64,7 +65,7 @@ export function ContactsPanel({ customerId, customerName, open, onClose }: Conta
           <Input.TextArea rows={3} />
         </Form.Item>
         <Form.Item name="nextFollowUpAt" label="یادآوری پیگیری بعدی (اختیاری)">
-          <DatePicker style={{ width: '100%' }} disabledDate={(date) => date.isBefore(dayjs(), 'day')} />
+          <PersianDateField placeholder="انتخاب تاریخ یادآوری" minDate={dayjs().format('YYYY-MM-DD')} />
         </Form.Item>
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={createContact.isPending} block>
@@ -85,13 +86,13 @@ export function ContactsPanel({ customerId, customerName, open, onClose }: Conta
                     {directionLabel[contact.direction].text}
                   </Tag>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {dayjs(contact.contactedAt).format('YYYY/MM/DD HH:mm')}
+                    {contact.contactedAtShamsi} {dayjs(contact.contactedAt).format('HH:mm')}
                   </Text>
                 </div>
                 <div>{contact.summary}</div>
-                {contact.nextFollowUpAt && (
+                {contact.nextFollowUpAtShamsi && (
                   <Text type="warning" style={{ fontSize: 12 }}>
-                    یادآوری پیگیری: {dayjs(contact.nextFollowUpAt).format('YYYY/MM/DD')}
+                    یادآوری پیگیری: {contact.nextFollowUpAtShamsi}
                   </Text>
                 )}
               </div>

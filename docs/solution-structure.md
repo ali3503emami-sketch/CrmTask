@@ -71,46 +71,99 @@ frontend/
     theme.ts               # Ant Design theme tokens (see frontend-design-system.md)
     shared/
       api/httpClient.ts    # Thin fetch wrapper (base URL from VITE_API_BASE_URL)
+      date/
+        # The shared Jalali date components — every date input/display in the
+        # app goes through one of these, not a raw antd DatePicker or dayjs
+        # formatting. All three wrap react-multi-date-picker + react-date-object.
+        PersianDateField.tsx      # Date-only picker, value in/out = Gregorian "YYYY-MM-DD"
+        PersianDateTimeField.tsx  # Date+time picker (adds the time_picker plugin), value in/out = full ISO datetime
+        PersianCalendar.tsx       # Always-visible (non-popup) day picker, used for TasksPage's calendar
+        # Shared gotcha across all three: a plain incoming string must be parsed
+        # with the `gregorian` calendar explicitly (`new DateObject({ date, calendar: gregorian })`)
+        # — otherwise DatePicker parses it using its own display calendar
+        # (persian) and silently misreads e.g. "2024-03-20" as a Jalali date.
+        # Outgoing values must convert back with `.convert(gregorian, gregorian_en)`
+        # — `gregorian_en` (not the default locale) is what keeps the emitted
+        # digits ASCII, matching the backend's own `PersianDateConverter.ToShamsi`
+        # format exactly (e.g. "1403/01/01", not "۱۴۰۳/۰۱/۰۱"). The *display*
+        # widgets themselves correctly render Persian digits (persian_fa locale)
+        # for the calendar UI — only the round-tripped string values need to
+        # stay ASCII. Don't re-derive a Shamsi string on the frontend for
+        # anything the backend already returns (`xxxShamsi` DTO fields) — display
+        # those directly; only use these components for *input*.
     features/
       customers/
-        types.ts            # Types mirroring the API's DTOs
-        customersApi.ts      # Typed request functions
+        types.ts            # Types mirroring the API's DTOs, including Personnel + all profile fields
+        customersApi.ts      # Typed request functions (create + update)
         useCustomers.ts       # TanStack Query hook (read)
-        useCreateCustomer.ts  # TanStack Query mutation hook (write)
-        CustomersPage.tsx     # The actual page — table + create-customer modal
-        CustomersPage.test.tsx
+        useCreateCustomer.ts  # TanStack Query mutation hook (create: name/category/phone only)
+        useUpdateCustomer.ts  # TanStack Query mutation hook (update: full profile + personnel)
+        CustomersPage.tsx     # Table (with an all-fields client-side search box) + create-customer modal
+        CustomerProfilePanel.tsx # Drawer opened via the row's "ویرایش" action — the
+        # *only* place profile fields (manager name/birthdate, address, fax,
+        # notes, national ID) and the embedded Personnel Form.List are edited;
+        # Create stays deliberately minimal (name/category/phone) per the
+        # backend split between CreateCustomerRequest and UpdateCustomerRequest.
       contacts/
         # Same shape as customers/. ContactsPanel is a Drawer opened from a
         # row action on CustomersPage — the pattern for any "sub-feature tied
-        # to a parent record".
+        # to a parent record". The next-follow-up field uses PersianDateField
+        # with `minDate` set to today; displayed dates use the backend's own
+        # `contactedAtShamsi`/`nextFollowUpAtShamsi` fields, not a re-derived one.
       contracts/
         # Same pattern as contacts/ — a second row-action Drawer (ContractsPanel)
-        # on CustomersPage. Date fields are plain "YYYY-MM-DD" text inputs, not
-        # antd's DatePicker — deliberate, to avoid Jalali/Gregorian locale
-        # parsing ambiguity now that ConfigProvider is set to fa_IR. Revisit
-        # once a real Jalali-aware date picker is chosen (not decided yet).
+        # on CustomersPage. Start/end date fields use PersianDateField; the list
+        # displays the backend's `startDateShamsi`/`endDateShamsi` directly.
       staff/
-        # Minimal: list + create only, no detail page. Exists to populate the
-        # assignee dropdown on TasksPage — not a login/auth system. See
-        # docs/configuration-and-secrets.md and the auth discussion in
-        # CLAUDE.md's history for why real authentication is a separate,
+        # StaffPage.tsx: its own top-level tab in App.tsx (list + create only,
+        # no edit/deactivate — matches the backend's endpoints). Also still
+        # populates the assignee dropdown on TasksPage — not a login/auth
+        # system. See docs/configuration-and-secrets.md and the auth discussion
+        # in CLAUDE.md's history for why real authentication is a separate,
         # deliberately-not-yet-built piece of work.
       tasks/
         # A top-level page (its own tab in App.tsx), not nested under Customers
         # — a task can be internal (customerId: null) or tied to a customer.
-        # TasksPage.tsx builds the checklist template at creation time via
-        # antd's Form.List (a dynamic array of {label, fieldType, options});
-        # ChecklistPanel.tsx is the separate Drawer for *filling in* an
-        # existing task's checklist values, one input per FieldType (Checkbox,
-        # Select for Dropdown, Radio.Group for ListBox, Input for TextBox).
+        # TasksPage.tsx has an always-visible PersianCalendar at the top for
+        # day-based filtering: selectedDate === null shows every task
+        # (unfiltered, the default state); picking a day filters to that day's
+        # Open tasks, with a "نمایش همه" toggle to also reveal that day's Done
+        # tasks (it does NOT clear the day filter — see the user-facing spec in
+        # CLAUDE.md's history). Opening the create-task modal while a day is
+        # selected pre-fills `dueAt` to that day. TasksPage.tsx builds the
+        # checklist template at creation time via antd's Form.List (a dynamic
+        # array of {label, fieldType, options}); TaskDetailPanel.tsx (opened via
+        # the row's "مشاهده" button) is the Drawer that replaced the old
+        # ChecklistPanel.tsx — it shows the whole task (title, description,
+        # due date, assignee, customer, status) plus the checklist-filling UI
+        # in one place, with an inline "ویرایش" toggle for title/description/
+        # dueAt/customer that only appears while the task is Open (checklist
+        # inputs are also disabled once Done, mirroring the backend's lock).
+        # selectedTaskId (not the task object) is kept in TasksPage's state and
+        # the live task is looked up from the `tasks` query result each render
+        # — storing the object itself would go stale after any mutation
+        # (edit, mark-done, checklist change) until the panel was reopened.
     test/
       setup.ts             # jest-dom, matchMedia mock, RTL cleanup, MSW server lifecycle
       mocks/
         handlers.ts          # MSW request handlers (mutable in-memory data per docs/testing-strategy.md)
+        toShamsi.ts           # Mirrors the backend's PersianDateConverter.ToShamsi for mock
+        # responses (via react-date-object, converting to `persian` calendar +
+        # `gregorian_en` locale for ASCII digits) — keeps mocked Shamsi fields
+        # realistic without duplicating the .NET conversion logic by hand.
         server.ts
 ```
 
-New modules (Contracts, Tasks, Correspondence, ...) get their own folder under `src/features/`, following the same internal shape (`types.ts`, `xApi.ts`, `useX.ts` hooks, `XPage.tsx` + its test) as Customers.
+New modules (Correspondence, ...) get their own folder under `src/features/`, following the same internal shape (`types.ts`, `xApi.ts`, `useX.ts` hooks, `XPage.tsx` + its test) as Customers.
+
+### Testing rmdp-based components (PersianDateField/PersianDateTimeField/PersianCalendar)
+
+A few non-obvious things came up writing tests against these:
+
+- **Digit style differs by purpose, not by bug**: the calendar *display* renders Persian digits (locale `persian_fa`) — assert against those (e.g. `screen.getByDisplayValue('۱۴۰۳/۰۱/۰۱')`). The *round-tripped value* (what `onChange` emits, and what the backend's `xxxShamsi` fields contain) is ASCII (e.g. `'1403/01/01'`) — don't assert Persian digits there.
+- **A page with more than one rmdp calendar on it is ambiguous by day-number text alone.** TasksPage has both an always-visible `PersianCalendar` and, inside the create-task Modal, a `PersianDateTimeField` popup — both render `role="dialog"` and the same day markup. Disambiguate the Modal itself with `screen.findByRole('dialog', { name: '<modal title>' })`, and disambiguate the *popup* calendar (vs. the inline one) by scoping to the element wrapped in react-multi-date-picker's floating positioner (an element with inline `style="position: absolute..."` as an ancestor) — see `withinDueDatePopup()` in `TasksPage.test.tsx` for the pattern.
+- **rmdp's nav arrows and day cells have no useful accessible name** (`aria-roledescription`, not `aria-label`) — query them via `document.querySelector('.rmdp-arrow-container.rmdp-right')` / `.rmdp-day` rather than `getByRole('button', { name: ... })`.
+- **`eslint-plugin-testing-library` is not installed in this project** — don't add `eslint-disable-next-line testing-library/...` comments for the node-access queries above; there's no rule to disable, and the disable comment itself becomes a lint error ("Definition for rule ... was not found").
 
 ### Commands
 

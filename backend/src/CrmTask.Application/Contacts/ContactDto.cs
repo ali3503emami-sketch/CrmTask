@@ -8,4 +8,6 @@ public record ContactDto(
     ContactDirection Direction,
     string Summary,
     DateTimeOffset ContactedAt,
-    DateTimeOffset? NextFollowUpAt);
+    string ContactedAtShamsi,
+    DateTimeOffset? NextFollowUpAt,
+    string? NextFollowUpAtShamsi);

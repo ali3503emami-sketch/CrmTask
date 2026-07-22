@@ -6,7 +6,9 @@ export interface Contract {
   title: string
   amount: number
   startDate: string
+  startDateShamsi: string
   endDate: string
+  endDateShamsi: string
   status: ContractStatus
 }
 

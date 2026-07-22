@@ -57,4 +57,24 @@ describe('CustomersPage', () => {
 
     expect(await screen.findByText(`قراردادهای ${sampleCustomers[0].name}`)).toBeInTheDocument()
   })
+
+  it('filters the customer list by a search query that matches no field', async () => {
+    renderPage()
+    await screen.findAllByText(sampleCustomers[0].name)
+    const user = userEvent.setup()
+
+    await user.type(screen.getByPlaceholderText('جستجو در نام، تلفن، مدیرعامل، آدرس، شماره ملی، پرسنل و...'), 'چیزی که وجود ندارد')
+
+    expect(screen.queryByText(sampleCustomers[0].name)).not.toBeInTheDocument()
+  })
+
+  it('opens the profile edit panel for a customer via the row action', async () => {
+    renderPage()
+    await screen.findAllByText(sampleCustomers[0].name)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'ویرایش' }))
+
+    expect(await screen.findByText(`ویرایش ${sampleCustomers[0].name}`)).toBeInTheDocument()
+  })
 })

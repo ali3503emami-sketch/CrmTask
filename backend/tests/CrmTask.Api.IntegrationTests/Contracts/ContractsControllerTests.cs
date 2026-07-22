@@ -34,6 +34,22 @@ public class ContractsControllerTests(CustomApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task Create_ReturnsShamsiMirrorsForStartAndEndDate()
+    {
+        // 2024-03-20 is the well-documented Nowruz (Persian new year) 1403 —
+        // a fixed calendar fact, not something derived by the code under test.
+        var customerId = await CreateCustomerAsync();
+        var json = """{"title":"قرارداد پشتیبانی","amount":1000,"startDate":"2024-03-20","endDate":"2024-12-31"}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync($"/api/customers/{customerId}/contracts", content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"startDateShamsi\":\"1403/01/01\"");
+        body.Should().Contain("\"endDateShamsi\":");
+    }
+
+    [Fact]
     public async Task Create_WithEndDateBeforeStartDate_ReturnsValidationProblem()
     {
         var customerId = await CreateCustomerAsync();

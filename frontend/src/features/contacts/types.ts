@@ -6,7 +6,9 @@ export interface Contact {
   direction: ContactDirection
   summary: string
   contactedAt: string
+  contactedAtShamsi: string
   nextFollowUpAt: string | null
+  nextFollowUpAtShamsi: string | null
 }
 
 export interface CreateContactInput {

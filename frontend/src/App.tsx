@@ -2,14 +2,22 @@ import { useState } from 'react'
 import { Layout, Tabs, Typography } from 'antd'
 import { CustomersPage } from './features/customers/CustomersPage'
 import { TasksPage } from './features/tasks/TasksPage'
+import { StaffPage } from './features/staff/StaffPage'
 
 const { Header, Content } = Layout
 const { Title } = Typography
 
-type Page = 'customers' | 'tasks'
+type Page = 'customers' | 'tasks' | 'staff'
+
+const pageComponents: Record<Page, () => React.JSX.Element> = {
+  customers: CustomersPage,
+  tasks: TasksPage,
+  staff: StaffPage,
+}
 
 function App() {
   const [page, setPage] = useState<Page>('customers')
+  const ActivePage = pageComponents[page]
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -23,11 +31,12 @@ function App() {
           items={[
             { key: 'customers', label: 'مشتریان' },
             { key: 'tasks', label: 'کارهای جاری' },
+            { key: 'staff', label: 'پرسنل' },
           ]}
         />
       </Header>
       <Content style={{ padding: 20 }}>
-        {page === 'customers' ? <CustomersPage /> : <TasksPage />}
+        <ActivePage />
       </Content>
     </Layout>
   )

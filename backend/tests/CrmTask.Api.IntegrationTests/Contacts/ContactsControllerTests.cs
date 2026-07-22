@@ -35,6 +35,22 @@ public class ContactsControllerTests(CustomApiFactory factory) : IClassFixture<C
     }
 
     [Fact]
+    public async Task Create_ReturnsShamsiMirrorsForContactedAtAndNextFollowUpAt()
+    {
+        // 2024-03-20 is the well-documented Nowruz (Persian new year) 1403 —
+        // a fixed calendar fact, not something derived by the code under test.
+        var customerId = await CreateCustomerAsync();
+        var json = """{"direction":"Outbound","summary":"خلاصه","contactedAt":"2024-03-20T10:00:00Z","nextFollowUpAt":"2024-03-21T10:00:00Z"}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync($"/api/customers/{customerId}/contacts", content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"contactedAtShamsi\":\"1403/01/01\"");
+        body.Should().Contain("\"nextFollowUpAtShamsi\":\"1403/01/02\"");
+    }
+
+    [Fact]
     public async Task Create_ForNonExistentCustomer_Returns404()
     {
         var json = """{"direction":"Inbound","summary":"خلاصه","contactedAt":"2026-07-20T10:00:00Z"}""";

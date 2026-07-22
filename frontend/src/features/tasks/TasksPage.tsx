@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, Card, Form, Input, Modal, Select, Space, Statistic, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
+import { PersianCalendar } from '../../shared/date/PersianCalendar'
+import { PersianDateTimeField } from '../../shared/date/PersianDateTimeField'
 import { useTasks } from './useTasks'
 import { useCreateTask } from './useCreateTask'
 import { useMarkTaskDone } from './useMarkTaskDone'
 import { useStaff } from '../staff/useStaff'
 import { useCustomers } from '../customers/useCustomers'
-import { ChecklistPanel } from './ChecklistPanel'
+import { TaskDetailPanel } from './TaskDetailPanel'
 import type { ChecklistFieldType, TaskItem, TaskItemStatus } from './types'
 
 const statusLabel: Record<TaskItemStatus, { text: string; color: string }> = {
@@ -47,15 +48,38 @@ export function TasksPage() {
   const markDone = useMarkTaskDone()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form] = Form.useForm<CreateTaskFormValues>()
-  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [showAllForDay, setShowAllForDay] = useState(false)
+
+  const selectedTask = (tasks ?? []).find((t) => t.id === selectedTaskId) ?? null
 
   const staffNameById = new Map((staff ?? []).map((s) => [s.id, s.fullName]))
+  const customerNameById = new Map((customers ?? []).map((c) => [c.id, c.name]))
+
+  const handleDayChange = (isoDate: string) => {
+    setSelectedDate(isoDate)
+    setShowAllForDay(false)
+  }
+
+  const displayedTasks = useMemo(() => {
+    if (!selectedDate) return tasks ?? []
+    return (tasks ?? []).filter((t) => t.dueAt.slice(0, 10) === selectedDate && (showAllForDay || t.status === 'Open'))
+  }, [tasks, selectedDate, showAllForDay])
+
+  const handleOpenCreateModal = () => {
+    form.resetFields()
+    if (selectedDate) {
+      form.setFieldValue('dueAt', new Date(`${selectedDate}T09:00:00`).toISOString())
+    }
+    setIsModalOpen(true)
+  }
 
   const handleSubmit = async (values: CreateTaskFormValues) => {
     await createTask.mutateAsync({
       title: values.title,
       description: values.description ?? '',
-      dueAt: new Date(values.dueAt).toISOString(),
+      dueAt: values.dueAt,
       customerId: values.customerId ?? null,
       assignedToStaffId: values.assignedToStaffId,
       checklistFields: (values.checklistFields ?? []).map((f) => ({
@@ -77,13 +101,7 @@ export function TasksPage() {
 
   const columns: ColumnsType<TaskItem> = [
     { title: 'عنوان', dataIndex: 'title', key: 'title' },
-    {
-      title: 'سررسید',
-      dataIndex: 'dueAt',
-      key: 'dueAt',
-      width: 160,
-      render: (dueAt: string) => dayjs(dueAt).format('YYYY/MM/DD HH:mm'),
-    },
+    { title: 'سررسید', dataIndex: 'dueAtShamsi', key: 'dueAtShamsi', width: 160 },
     {
       title: 'مسئول',
       key: 'assignee',
@@ -103,8 +121,8 @@ export function TasksPage() {
       width: 200,
       render: (_, task) => (
         <Space>
-          <Button size="small" onClick={() => setSelectedTask(task)}>
-            چک‌لیست
+          <Button size="small" onClick={() => setSelectedTaskId(task.id)}>
+            مشاهده
           </Button>
           {task.status === 'Open' && (
             <Button size="small" onClick={() => markDone.mutate(task.id)}>
@@ -122,7 +140,7 @@ export function TasksPage() {
         size="small"
         title="کارهای جاری"
         extra={
-          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+          <Button type="primary" onClick={handleOpenCreateModal}>
             کار جدید
           </Button>
         }
@@ -131,8 +149,28 @@ export function TasksPage() {
         <Statistic title="تعداد کارهای باز" value={openTasksCount} />
       </Card>
 
-      <Card size="small">
-        <Table size="small" rowKey="id" loading={isLoading} columns={columns} dataSource={tasks} pagination={false} />
+      <Card size="small" title="تقویم" style={{ marginBottom: 16 }}>
+        <PersianCalendar value={selectedDate} onChange={handleDayChange} />
+      </Card>
+
+      <Card
+        size="small"
+        extra={
+          selectedDate && (
+            <Button size="small" onClick={() => setShowAllForDay((v) => !v)}>
+              {showAllForDay ? 'فقط کارهای باز' : 'نمایش همه'}
+            </Button>
+          )
+        }
+      >
+        <Table
+          size="small"
+          rowKey="id"
+          loading={isLoading}
+          columns={columns}
+          dataSource={displayedTasks}
+          pagination={false}
+        />
       </Card>
 
       <Modal
@@ -151,7 +189,7 @@ export function TasksPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="dueAt" label="سررسید" rules={[{ required: true, message: 'سررسید الزامی است' }]}>
-            <Input placeholder="2026-08-01T12:00" />
+            <PersianDateTimeField placeholder="انتخاب سررسید" />
           </Form.Item>
           <Form.Item name="customerId" label="مشتری (اختیاری)">
             <Select
@@ -216,7 +254,16 @@ export function TasksPage() {
         </Form>
       </Modal>
 
-      {selectedTask && <ChecklistPanel task={selectedTask} open onClose={() => setSelectedTask(null)} />}
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          assigneeName={staffNameById.get(selectedTask.assignedToStaffId) ?? '—'}
+          customerName={selectedTask.customerId ? customerNameById.get(selectedTask.customerId) : undefined}
+          customers={customers ?? []}
+          open
+          onClose={() => setSelectedTaskId(null)}
+        />
+      )}
     </div>
   )
 }

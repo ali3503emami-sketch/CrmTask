@@ -34,4 +34,21 @@ describe('ContactsPanel', () => {
       expect(await screen.findAllByText('پیگیری وضعیت قرارداد')).not.toHaveLength(0)
     })
   })
+
+  it('logs a contact with a Jalali next-follow-up date and shows it back as a Shamsi string', async () => {
+    renderPanel()
+    await screen.findByText('هنوز تماسی ثبت نشده است')
+    const user = userEvent.setup()
+
+    await user.type(screen.getByLabelText('خلاصه تماس'), 'نیاز به پیگیری دارد')
+    await user.click(screen.getByPlaceholderText('انتخاب تاریخ یادآوری'))
+    const nextMonthButton = document.querySelector('.rmdp-arrow-container.rmdp-right') as HTMLElement
+    await user.click(nextMonthButton)
+    await user.click(screen.getAllByText('۱۰')[0])
+    await user.click(screen.getByRole('button', { name: 'ثبت تماس' }))
+
+    await waitFor(async () => {
+      expect(await screen.findByText(/یادآوری پیگیری: 1405\/05\/\d{2}/)).toBeInTheDocument()
+    })
+  })
 })

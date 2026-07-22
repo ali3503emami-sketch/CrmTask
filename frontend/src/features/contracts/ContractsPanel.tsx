@@ -1,5 +1,5 @@
 import { Button, Drawer, Empty, Form, Input, InputNumber, Spin, Tag, Typography } from 'antd'
-import dayjs from 'dayjs'
+import { PersianDateField } from '../../shared/date/PersianDateField'
 import { useContracts } from './useContracts'
 import { useCreateContract } from './useCreateContract'
 import type { ContractStatus } from './types'
@@ -11,8 +11,6 @@ const statusLabel: Record<ContractStatus, { text: string; color: string }> = {
   ExpiringSoon: { text: 'در حال اتمام', color: 'warning' },
   Ended: { text: 'خاتمه‌یافته', color: 'default' },
 }
-
-const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
 interface CreateContractFormValues {
   title: string
@@ -51,25 +49,11 @@ export function ContractsPanel({ customerId, customerName, open, onClose }: Cont
         <Form.Item name="amount" label="مبلغ (تومان)" rules={[{ required: true, message: 'مبلغ الزامی است' }]}>
           <InputNumber style={{ width: '100%' }} min={0} />
         </Form.Item>
-        <Form.Item
-          name="startDate"
-          label="تاریخ شروع"
-          rules={[
-            { required: true, message: 'تاریخ شروع الزامی است' },
-            { pattern: datePattern, message: 'فرمت تاریخ باید YYYY-MM-DD باشد' },
-          ]}
-        >
-          <Input placeholder="1405-01-01" />
+        <Form.Item name="startDate" label="تاریخ شروع" rules={[{ required: true, message: 'تاریخ شروع الزامی است' }]}>
+          <PersianDateField placeholder="انتخاب تاریخ شروع" />
         </Form.Item>
-        <Form.Item
-          name="endDate"
-          label="تاریخ پایان"
-          rules={[
-            { required: true, message: 'تاریخ پایان الزامی است' },
-            { pattern: datePattern, message: 'فرمت تاریخ باید YYYY-MM-DD باشد' },
-          ]}
-        >
-          <Input placeholder="1405-12-29" />
+        <Form.Item name="endDate" label="تاریخ پایان" rules={[{ required: true, message: 'تاریخ پایان الزامی است' }]}>
+          <PersianDateField placeholder="انتخاب تاریخ پایان" />
         </Form.Item>
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={createContract.isPending} block>
@@ -88,7 +72,7 @@ export function ContractsPanel({ customerId, customerName, open, onClose }: Cont
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <Tag color={statusLabel[contract.status].color}>{statusLabel[contract.status].text}</Tag>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {dayjs(contract.startDate).format('YYYY/MM/DD')} تا {dayjs(contract.endDate).format('YYYY/MM/DD')}
+                    {contract.startDateShamsi} تا {contract.endDateShamsi}
                   </Text>
                 </div>
                 <div>{contract.title}</div>

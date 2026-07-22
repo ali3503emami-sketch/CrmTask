@@ -1,9 +1,10 @@
 import { http, HttpResponse } from 'msw'
-import type { Customer } from '../../features/customers/types'
+import type { Customer, CustomerPersonnelInput, UpdateCustomerInput } from '../../features/customers/types'
 import type { Contact } from '../../features/contacts/types'
 import type { Contract, ContractStatus } from '../../features/contracts/types'
 import type { StaffMember } from '../../features/staff/types'
 import type { TaskItem } from '../../features/tasks/types'
+import { toShamsi } from './toShamsi'
 
 // The "happy path" most tests can rely on without extra setup — see
 // docs/testing-strategy.md for the convention (per-test server.use() overrides
@@ -15,8 +16,21 @@ const initialCustomers: Customer[] = [
     category: 'Legal',
     phone: '02112345678',
     createdAt: '2026-07-01T00:00:00Z',
+    createdAtShamsi: toShamsi('2026-07-01T00:00:00Z'),
+    managerName: null,
+    managerBirthDate: null,
+    managerBirthDateShamsi: null,
+    address: null,
+    fax: null,
+    notes: null,
+    nationalId: null,
+    personnel: [],
   },
 ]
+
+function toPersonnel(input: CustomerPersonnelInput[]): Customer['personnel'] {
+  return input.map((p) => ({ id: crypto.randomUUID(), ...p }))
+}
 
 const initialContacts: Contact[] = []
 const initialContracts: Contract[] = []
@@ -59,23 +73,52 @@ function computeContractStatus(endDate: string): ContractStatus {
 export const handlers = [
   http.get('*/api/customers', () => HttpResponse.json(sampleCustomers)),
   http.post('*/api/customers', async ({ request }) => {
-    const body = (await request.json()) as Omit<Customer, 'id' | 'createdAt'>
+    const body = (await request.json()) as { name: string; category: Customer['category']; phone: string }
+    const createdAt = new Date().toISOString()
     const created: Customer = {
       id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+      createdAt,
+      createdAtShamsi: toShamsi(createdAt),
+      managerName: null,
+      managerBirthDate: null,
+      managerBirthDateShamsi: null,
+      address: null,
+      fax: null,
+      notes: null,
+      nationalId: null,
+      personnel: [],
       ...body,
     }
     sampleCustomers.push(created)
     return HttpResponse.json(created, { status: 201 })
   }),
+  http.put('*/api/customers/:customerId', async ({ request, params }) => {
+    const customer = sampleCustomers.find((c) => c.id === params.customerId)
+    if (!customer) return new HttpResponse(null, { status: 404 })
+    const body = (await request.json()) as UpdateCustomerInput
+    customer.name = body.name
+    customer.category = body.category
+    customer.phone = body.phone
+    customer.managerName = body.managerName
+    customer.managerBirthDate = body.managerBirthDate
+    customer.managerBirthDateShamsi = body.managerBirthDate ? toShamsi(body.managerBirthDate) : null
+    customer.address = body.address
+    customer.fax = body.fax
+    customer.notes = body.notes
+    customer.nationalId = body.nationalId
+    customer.personnel = toPersonnel(body.personnel)
+    return HttpResponse.json(customer)
+  }),
   http.get('*/api/customers/:customerId/contacts', ({ params }) =>
     HttpResponse.json(sampleContacts.filter((c) => c.customerId === params.customerId)),
   ),
   http.post('*/api/customers/:customerId/contacts', async ({ request, params }) => {
-    const body = (await request.json()) as Omit<Contact, 'id' | 'customerId'>
+    const body = (await request.json()) as Omit<Contact, 'id' | 'customerId' | 'contactedAtShamsi' | 'nextFollowUpAtShamsi'>
     const created: Contact = {
       id: crypto.randomUUID(),
       customerId: params.customerId as string,
+      contactedAtShamsi: toShamsi(body.contactedAt),
+      nextFollowUpAtShamsi: body.nextFollowUpAt ? toShamsi(body.nextFollowUpAt) : null,
       ...body,
     }
     sampleContacts.push(created)
@@ -85,11 +128,13 @@ export const handlers = [
     HttpResponse.json(sampleContracts.filter((c) => c.customerId === params.customerId)),
   ),
   http.post('*/api/customers/:customerId/contracts', async ({ request, params }) => {
-    const body = (await request.json()) as Omit<Contract, 'id' | 'customerId' | 'status'>
+    const body = (await request.json()) as Omit<Contract, 'id' | 'customerId' | 'status' | 'startDateShamsi' | 'endDateShamsi'>
     const created: Contract = {
       id: crypto.randomUUID(),
       customerId: params.customerId as string,
       status: computeContractStatus(body.endDate),
+      startDateShamsi: toShamsi(body.startDate),
+      endDateShamsi: toShamsi(body.endDate),
       ...body,
     }
     sampleContracts.push(created)
@@ -117,6 +162,7 @@ export const handlers = [
       title: body.title,
       description: body.description,
       dueAt: body.dueAt,
+      dueAtShamsi: toShamsi(body.dueAt),
       customerId: body.customerId,
       assignedToStaffId: body.assignedToStaffId,
       status: 'Open',
@@ -130,6 +176,18 @@ export const handlers = [
     }
     sampleTasks.push(created)
     return HttpResponse.json(created, { status: 201 })
+  }),
+  http.put('*/api/tasks/:taskId', async ({ request, params }) => {
+    const task = sampleTasks.find((t) => t.id === params.taskId)
+    if (!task) return new HttpResponse(null, { status: 404 })
+    if (task.status === 'Done') return new HttpResponse('Task is already done and cannot be edited.', { status: 409 })
+    const body = (await request.json()) as { title: string; description: string; dueAt: string; customerId: string | null }
+    task.title = body.title
+    task.description = body.description
+    task.dueAt = body.dueAt
+    task.dueAtShamsi = toShamsi(body.dueAt)
+    task.customerId = body.customerId
+    return HttpResponse.json(task)
   }),
   http.post('*/api/tasks/:taskId/mark-done', ({ params }) => {
     const task = sampleTasks.find((t) => t.id === params.taskId)

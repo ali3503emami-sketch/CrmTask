@@ -30,7 +30,9 @@ public class ContractService(IContractRepository repository, TimeProvider timePr
             contract.Title,
             contract.Amount,
             contract.StartDate,
+            contract.StartDateShamsi,
             contract.EndDate,
+            contract.EndDateShamsi,
             contract.GetStatus(today));
     }
 }

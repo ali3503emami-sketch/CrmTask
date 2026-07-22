@@ -8,5 +8,7 @@ public record ContractDto(
     string Title,
     decimal Amount,
     DateOnly StartDate,
+    string StartDateShamsi,
     DateOnly EndDate,
+    string EndDateShamsi,
     ContractStatus Status);
