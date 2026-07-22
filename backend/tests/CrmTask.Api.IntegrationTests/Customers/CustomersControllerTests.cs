@@ -80,4 +80,51 @@ public class CustomersControllerTests(CustomApiFactory factory) : IClassFixture<
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Update_ChangesCoreAndProfileFieldsAndPersonnel()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/api/customers",
+            new CreateCustomerRequest("نام قدیمی", CustomerCategory.Legal, "02112345678"),
+            JsonOptions);
+        var created = await createResponse.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions);
+
+        var json = """
+            {
+              "name": "نام جدید",
+              "category": "Legal",
+              "phone": "02112345678",
+              "managerName": "رضا کیانی",
+              "managerBirthDate": "1980-05-10",
+              "address": "تهران",
+              "fax": "02112345679",
+              "notes": "یادداشت",
+              "nationalId": "1234567890",
+              "personnel": [
+                { "fullName": "سارا محمدی", "position": "حسابدار", "phone": null, "mobile": "09121112233", "email": null }
+              ]
+            }
+            """;
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/customers/{created!.Id}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"name\":\"نام جدید\"");
+        body.Should().Contain("\"managerName\":\"رضا کیانی\"");
+        body.Should().Contain("سارا محمدی");
+    }
+
+    [Fact]
+    public async Task Update_WhenCustomerNotFound_Returns404()
+    {
+        var json = """{"name":"نام","category":"Legal","phone":"02112345678","managerName":null,"managerBirthDate":null,"address":null,"fax":null,"notes":null,"nationalId":null,"personnel":[]}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/customers/{Guid.NewGuid()}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

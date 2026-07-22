@@ -27,4 +27,28 @@ public class CustomerService(ICustomerRepository repository) : ICustomerService
 
         return customer?.Adapt<CustomerDto>();
     }
+
+    public async Task<CustomerDto?> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
+    {
+        var customer = await repository.GetTrackedByIdAsync(id, cancellationToken);
+        if (customer is null)
+        {
+            return null;
+        }
+
+        customer.UpdateCore(request.Name, request.Category, request.Phone);
+        customer.UpdateProfile(
+            request.ManagerName,
+            request.ManagerBirthDate,
+            request.Address,
+            request.Fax,
+            request.Notes,
+            request.NationalId);
+        customer.ReplacePersonnel(request.Personnel.Select(p =>
+            CustomerPersonnel.Create(p.FullName, p.Position, p.Phone, p.Mobile, p.Email)));
+
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return customer.Adapt<CustomerDto>();
+    }
 }

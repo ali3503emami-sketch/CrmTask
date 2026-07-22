@@ -1,3 +1,5 @@
+using CrmTask.Domain.Shared;
+
 namespace CrmTask.Domain.Contracts;
 
 /// <summary>
@@ -25,7 +27,11 @@ public class Contract
 
     public DateOnly StartDate { get; private set; }
 
+    public string StartDateShamsi { get; private set; } = null!;
+
     public DateOnly EndDate { get; private set; }
+
+    public string EndDateShamsi { get; private set; } = null!;
 
     public static Contract Create(Guid customerId, string title, decimal amount, DateOnly startDate, DateOnly endDate)
     {
@@ -56,7 +62,9 @@ public class Contract
             Title = title.Trim(),
             Amount = amount,
             StartDate = startDate,
+            StartDateShamsi = PersianDateConverter.ToShamsi(startDate),
             EndDate = endDate,
+            EndDateShamsi = PersianDateConverter.ToShamsi(endDate),
         };
     }
 

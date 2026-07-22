@@ -98,6 +98,56 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     }
 
     [Fact]
+    public async Task GetById_ReturnsTheFullTaskWithChecklist()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId, "کار قابل مشاهده");
+
+        var response = await _client.GetAsync($"/api/tasks/{taskId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("کار قابل مشاهده");
+    }
+
+    [Fact]
+    public async Task GetById_WhenNotFound_Returns404()
+    {
+        var response = await _client.GetAsync($"/api/tasks/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_WhileOpen_ChangesFields()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        var json = """{"title":"عنوان جدید","description":"","dueAt":"2026-08-02T12:00:00Z","customerId":null}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/tasks/{taskId}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"title\":\"عنوان جدید\"");
+    }
+
+    [Fact]
+    public async Task Update_AfterMarkedDone_Returns409()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        await _client.PostAsync($"/api/tasks/{taskId}/mark-done", null);
+        var json = """{"title":"عنوان جدید","description":"","dueAt":"2026-08-02T12:00:00Z","customerId":null}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/tasks/{taskId}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task GetAll_ReturnsPreviouslyCreatedTask()
     {
         var staffId = await CreateStaffMemberAsync();

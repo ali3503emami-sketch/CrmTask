@@ -55,4 +55,41 @@ public class CustomerServiceTests
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task UpdateAsync_WithValidRequest_UpdatesCoreAndProfileAndPersonnel()
+    {
+        var customer = Customer.Create("نام قدیمی", CustomerCategory.Legal, "02112345678");
+        _repository.Setup(r => r.GetTrackedByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        var request = new UpdateCustomerRequest(
+            "نام جدید",
+            CustomerCategory.Individual,
+            "09121234567",
+            "رضا کیانی",
+            new DateOnly(1980, 5, 10),
+            "تهران",
+            "02112345679",
+            "یادداشت",
+            "1234567890",
+            [new CustomerPersonnelInput("سارا محمدی", "حسابدار", null, "09121112233", null)]);
+
+        var result = await _sut.UpdateAsync(customer.Id, request);
+
+        result!.Name.Should().Be("نام جدید");
+        result.ManagerName.Should().Be("رضا کیانی");
+        result.Personnel.Should().ContainSingle(p => p.FullName == "سارا محمدی");
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenCustomerNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetTrackedByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Customer?)null);
+        var request = new UpdateCustomerRequest("نام", CustomerCategory.Legal, "02112345678", null, null, null, null, null, null, []);
+
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), request);
+
+        result.Should().BeNull();
+    }
 }

@@ -82,4 +82,49 @@ public class TaskServiceTests
 
         result.Should().ContainSingle(t => t.Title == "کار اول");
     }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenFound_ReturnsTask()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+
+        var result = await _sut.GetByIdAsync(task.Id);
+
+        result!.Title.Should().Be("کار");
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+
+        var result = await _sut.GetByIdAsync(Guid.NewGuid());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesFieldsAndPersists()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        var request = new UpdateTaskRequest("عنوان جدید", "توضیحات جدید", DueAt.AddDays(1), null);
+
+        var result = await _sut.UpdateAsync(task.Id, request);
+
+        result!.Title.Should().Be("عنوان جدید");
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenTaskNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+        var request = new UpdateTaskRequest("عنوان", string.Empty, DueAt, null);
+
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), request);
+
+        result.Should().BeNull();
+    }
 }

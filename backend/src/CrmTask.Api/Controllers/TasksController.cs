@@ -12,7 +12,8 @@ public class TasksController(
     ITaskService taskService,
     ICustomerService customerService,
     IStaffService staffService,
-    IValidator<CreateTaskRequest> validator) : ControllerBase
+    IValidator<CreateTaskRequest> createValidator,
+    IValidator<UpdateTaskRequest> updateValidator) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<TaskItemDto>>> GetAll([FromQuery] Guid? customerId, CancellationToken cancellationToken)
@@ -21,10 +22,17 @@ public class TasksController(
         return Ok(tasks);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<TaskItemDto>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var task = await taskService.GetByIdAsync(id, cancellationToken);
+        return task is null ? NotFound() : Ok(task);
+    }
+
     [HttpPost]
     public async Task<ActionResult<TaskItemDto>> Create(CreateTaskRequest request, CancellationToken cancellationToken)
     {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        var validationResult = await createValidator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
             foreach (var error in validationResult.Errors)
@@ -46,7 +54,37 @@ public class TasksController(
         }
 
         var task = await taskService.CreateAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(GetAll), new { customerId = task.CustomerId }, task);
+        return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<TaskItemDto>> Update(Guid id, UpdateTaskRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await updateValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            foreach (var error in validationResult.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        if (request.CustomerId.HasValue && await customerService.GetByIdAsync(request.CustomerId.Value, cancellationToken) is null)
+        {
+            return NotFound($"Customer {request.CustomerId} was not found.");
+        }
+
+        try
+        {
+            var task = await taskService.UpdateAsync(id, request, cancellationToken);
+            return task is null ? NotFound() : Ok(task);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPost("{id:guid}/mark-done")]
@@ -64,8 +102,15 @@ public class TasksController(
             return NotFound($"Staff member {request.StaffId} was not found.");
         }
 
-        var task = await taskService.ReassignAsync(id, request.StaffId, cancellationToken);
-        return task is null ? NotFound() : Ok(task);
+        try
+        {
+            var task = await taskService.ReassignAsync(id, request.StaffId, cancellationToken);
+            return task is null ? NotFound() : Ok(task);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpPut("{id:guid}/checklist-items/{checklistItemId:guid}")]
@@ -75,7 +120,14 @@ public class TasksController(
         SetChecklistItemValueRequest request,
         CancellationToken cancellationToken)
     {
-        var task = await taskService.SetChecklistItemValueAsync(id, checklistItemId, request.Value, cancellationToken);
-        return task is null ? NotFound() : Ok(task);
+        try
+        {
+            var task = await taskService.SetChecklistItemValueAsync(id, checklistItemId, request.Value, cancellationToken);
+            return task is null ? NotFound() : Ok(task);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 }

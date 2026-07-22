@@ -58,4 +58,23 @@ public class ContactTests
 
         act.Should().Throw<ArgumentException>().WithParameterName("nextFollowUpAt");
     }
+
+    [Fact]
+    public void Create_SetsShamsiMirrorsForBothDates()
+    {
+        var followUp = ContactedAt.AddDays(3);
+
+        var contact = Contact.Create(CustomerId, ContactDirection.Outbound, "خلاصه", ContactedAt, followUp);
+
+        contact.ContactedAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(ContactedAt));
+        contact.NextFollowUpAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(followUp));
+    }
+
+    [Fact]
+    public void Create_WithoutFollowUp_LeavesShamsiMirrorNull()
+    {
+        var contact = Contact.Create(CustomerId, ContactDirection.Inbound, "خلاصه", ContactedAt, null);
+
+        contact.NextFollowUpAtShamsi.Should().BeNull();
+    }
 }

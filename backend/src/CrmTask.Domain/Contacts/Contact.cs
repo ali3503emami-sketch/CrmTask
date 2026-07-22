@@ -1,3 +1,5 @@
+using CrmTask.Domain.Shared;
+
 namespace CrmTask.Domain.Contacts;
 
 /// <summary>
@@ -20,7 +22,11 @@ public class Contact
 
     public DateTimeOffset ContactedAt { get; private set; }
 
+    public string ContactedAtShamsi { get; private set; } = null!;
+
     public DateTimeOffset? NextFollowUpAt { get; private set; }
+
+    public string? NextFollowUpAtShamsi { get; private set; }
 
     public static Contact Create(
         Guid customerId,
@@ -51,7 +57,9 @@ public class Contact
             Direction = direction,
             Summary = summary.Trim(),
             ContactedAt = contactedAt,
+            ContactedAtShamsi = PersianDateConverter.ToShamsi(contactedAt),
             NextFollowUpAt = nextFollowUpAt,
+            NextFollowUpAtShamsi = nextFollowUpAt.HasValue ? PersianDateConverter.ToShamsi(nextFollowUpAt.Value) : null,
         };
     }
 }

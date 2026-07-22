@@ -118,4 +118,61 @@ public class TaskItemTests
 
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void Create_SetsDueAtShamsi()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+
+        task.DueAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(DueAt));
+    }
+
+    [Fact]
+    public void Update_ChangesTitleDescriptionDueAtAndCustomer()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var newDueAt = DueAt.AddDays(1);
+
+        task.Update("عنوان جدید", "توضیحات جدید", newDueAt, CustomerId);
+
+        task.Title.Should().Be("عنوان جدید");
+        task.Description.Should().Be("توضیحات جدید");
+        task.DueAt.Should().Be(newDueAt);
+        task.DueAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(newDueAt));
+        task.CustomerId.Should().Be(CustomerId);
+    }
+
+    [Fact]
+    public void Update_WhenTaskIsDone_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        task.MarkAsDone();
+
+        var act = () => task.Update("عنوان جدید", string.Empty, DueAt, null);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Reassign_WhenTaskIsDone_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        task.MarkAsDone();
+
+        var act = () => task.Reassign(Guid.NewGuid());
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void SetChecklistItemValue_WhenTaskIsDone_Throws()
+    {
+        var checklistItem = ChecklistItem.Create("چک شد؟", ChecklistFieldType.Checkbox, null);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, [checklistItem]);
+        task.MarkAsDone();
+
+        var act = () => task.SetChecklistItemValue(checklistItem.Id, "true");
+
+        act.Should().Throw<InvalidOperationException>();
+    }
 }

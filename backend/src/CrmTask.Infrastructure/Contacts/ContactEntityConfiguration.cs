@@ -19,6 +19,9 @@ public class ContactEntityConfiguration : IEntityTypeConfiguration<Contact>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Property(c => c.ContactedAtShamsi).HasMaxLength(10);
+        builder.Property(c => c.NextFollowUpAtShamsi).HasMaxLength(10);
+
         builder.HasIndex(c => c.CustomerId);
 
         builder.HasOne<Customer>()

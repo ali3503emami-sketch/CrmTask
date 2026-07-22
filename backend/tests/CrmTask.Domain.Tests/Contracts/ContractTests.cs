@@ -69,4 +69,13 @@ public class ContractTests
 
         contract.GetStatus(today).Should().Be(expected);
     }
+
+    [Fact]
+    public void Create_SetsShamsiMirrorsForBothDates()
+    {
+        var contract = Contract.Create(CustomerId, "عنوان", 0m, StartDate, EndDate);
+
+        contract.StartDateShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(StartDate));
+        contract.EndDateShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(EndDate));
+    }
 }

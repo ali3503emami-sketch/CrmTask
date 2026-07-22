@@ -21,6 +21,8 @@ public class TaskItemEntityConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.Property(t => t.Description)
             .HasMaxLength(2000);
 
+        builder.Property(t => t.DueAtShamsi).HasMaxLength(10);
+
         builder.HasIndex(t => t.CustomerId);
         builder.HasIndex(t => t.AssignedToStaffId);
 

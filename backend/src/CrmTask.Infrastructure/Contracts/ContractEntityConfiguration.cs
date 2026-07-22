@@ -18,6 +18,9 @@ public class ContractEntityConfiguration : IEntityTypeConfiguration<Contract>
         builder.Property(c => c.Amount)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(c => c.StartDateShamsi).HasMaxLength(10);
+        builder.Property(c => c.EndDateShamsi).HasMaxLength(10);
+
         builder.HasIndex(c => c.CustomerId);
 
         builder.HasOne<Customer>()

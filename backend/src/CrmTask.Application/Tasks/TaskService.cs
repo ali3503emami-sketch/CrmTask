@@ -30,6 +30,27 @@ public class TaskService(ITaskRepository repository) : ITaskService
         return tasks.Select(ToDto).ToList();
     }
 
+    public async Task<TaskItemDto?> GetByIdAsync(Guid taskId, CancellationToken cancellationToken = default)
+    {
+        var task = await repository.GetByIdAsync(taskId, cancellationToken);
+
+        return task is null ? null : ToDto(task);
+    }
+
+    public async Task<TaskItemDto?> UpdateAsync(Guid taskId, UpdateTaskRequest request, CancellationToken cancellationToken = default)
+    {
+        var task = await repository.GetByIdAsync(taskId, cancellationToken);
+        if (task is null)
+        {
+            return null;
+        }
+
+        task.Update(request.Title, request.Description, request.DueAt, request.CustomerId);
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return ToDto(task);
+    }
+
     public async Task<TaskItemDto?> MarkAsDoneAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
         var task = await repository.GetByIdAsync(taskId, cancellationToken);
@@ -83,6 +104,7 @@ public class TaskService(ITaskRepository repository) : ITaskService
             task.Title,
             task.Description,
             task.DueAt,
+            task.DueAtShamsi,
             task.CustomerId,
             task.AssignedToStaffId,
             task.Status,

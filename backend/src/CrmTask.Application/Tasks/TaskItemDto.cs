@@ -7,6 +7,7 @@ public record TaskItemDto(
     string Title,
     string Description,
     DateTimeOffset DueAt,
+    string DueAtShamsi,
     Guid? CustomerId,
     Guid AssignedToStaffId,
     TaskItemStatus Status,
