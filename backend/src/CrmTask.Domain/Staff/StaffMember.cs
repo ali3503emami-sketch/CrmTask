@@ -16,9 +16,11 @@ public class StaffMember
 
     public string PhoneNumber { get; private set; } = null!;
 
+    public string? Position { get; private set; }
+
     public bool IsActive { get; private set; }
 
-    public static StaffMember Create(string fullName, string phoneNumber)
+    public static StaffMember Create(string fullName, string phoneNumber, string? position)
     {
         if (string.IsNullOrWhiteSpace(fullName))
         {
@@ -35,6 +37,7 @@ public class StaffMember
             Id = Guid.NewGuid(),
             FullName = fullName.Trim(),
             PhoneNumber = phoneNumber.Trim(),
+            Position = string.IsNullOrWhiteSpace(position) ? null : position.Trim(),
             IsActive = true,
         };
     }

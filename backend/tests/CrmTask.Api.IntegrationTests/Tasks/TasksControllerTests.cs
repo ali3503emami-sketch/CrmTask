@@ -28,6 +28,7 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
               "dueAt": "2026-08-01T12:00:00Z",
               "customerId": null,
               "assignedToStaffId": "{{staffId}}",
+              "createdByStaffId": "{{staffId}}",
               "checklistFields": [
                 { "label": "چک شد؟", "fieldType": "Checkbox", "options": null },
                 { "label": "وضعیت", "fieldType": "Dropdown", "options": ["انجام‌شده", "در حال انجام"] }
@@ -48,7 +49,19 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     [Fact]
     public async Task Create_ForNonExistentStaffMember_Returns404()
     {
-        var json = """{"title":"کار","description":"","dueAt":"2026-08-01T12:00:00Z","customerId":null,"assignedToStaffId":"11111111-1111-1111-1111-111111111111","checklistFields":[]}""";
+        var json = """{"title":"کار","description":"","dueAt":"2026-08-01T12:00:00Z","customerId":null,"assignedToStaffId":"11111111-1111-1111-1111-111111111111","createdByStaffId":"11111111-1111-1111-1111-111111111111","checklistFields":[]}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync("/api/tasks", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_ForNonExistentCreatorStaffMember_Returns404()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var json = $$"""{"title":"کار","description":"","dueAt":"2026-08-01T12:00:00Z","customerId":null,"assignedToStaffId":"{{staffId}}","createdByStaffId":"11111111-1111-1111-1111-111111111111","checklistFields":[]}""";
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync("/api/tasks", content);
@@ -80,6 +93,7 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
               "dueAt": "2026-08-01T12:00:00Z",
               "customerId": null,
               "assignedToStaffId": "{{staffId}}",
+              "createdByStaffId": "{{staffId}}",
               "checklistFields": [ { "label": "چک شد؟", "fieldType": "Checkbox", "options": null } ]
             }
             """;
@@ -162,7 +176,7 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
 
     private async Task<string> CreateStaffMemberAsync()
     {
-        var response = await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("سارا محمدی", "09121112233"));
+        var response = await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("سارا محمدی", "09121112233", null));
         var created = await response.Content.ReadFromJsonAsync<StaffMemberDto>(JsonOptions);
         return created!.Id.ToString();
     }
@@ -170,7 +184,7 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     private async Task<string> CreateTaskAsync(string staffId, string title = "کار")
     {
         var json = $$"""
-            {"title":"{{title}}","description":"","dueAt":"2026-08-01T12:00:00Z","customerId":null,"assignedToStaffId":"{{staffId}}","checklistFields":[]}
+            {"title":"{{title}}","description":"","dueAt":"2026-08-01T12:00:00Z","customerId":null,"assignedToStaffId":"{{staffId}}","createdByStaffId":"{{staffId}}","checklistFields":[]}
             """;
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("/api/tasks", content);

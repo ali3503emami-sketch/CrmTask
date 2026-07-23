@@ -7,7 +7,7 @@ public class StaffService(IStaffRepository repository) : IStaffService
 {
     public async Task<StaffMemberDto> CreateAsync(CreateStaffMemberRequest request, CancellationToken cancellationToken = default)
     {
-        var staffMember = StaffMember.Create(request.FullName, request.PhoneNumber);
+        var staffMember = StaffMember.Create(request.FullName, request.PhoneNumber, request.Position);
 
         await repository.AddAsync(staffMember, cancellationToken);
 

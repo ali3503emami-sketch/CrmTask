@@ -12,4 +12,6 @@ public record UpdateCustomerRequest(
     string? Fax,
     string? Notes,
     string? NationalId,
+    string? CategoryTitle,
+    string? ActivityField,
     IReadOnlyList<CustomerPersonnelInput> Personnel);

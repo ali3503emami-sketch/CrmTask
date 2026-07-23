@@ -17,5 +17,8 @@ public class StaffMemberEntityConfiguration : IEntityTypeConfiguration<StaffMemb
         builder.Property(s => s.PhoneNumber)
             .IsRequired()
             .HasMaxLength(20);
+
+        builder.Property(s => s.Position)
+            .HasMaxLength(200);
     }
 }

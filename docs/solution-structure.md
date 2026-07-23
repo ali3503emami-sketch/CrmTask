@@ -48,6 +48,22 @@ Cross-feature references go through the *parent's* service, not the repository d
 
 **If this bites again**: any owned collection where new items can be added to an *already-saved* parent (not just at initial creation) needs this same fix. `ChecklistItem` doesn't need it *today* only because nothing currently adds new checklist items to an existing task after creation — if that changes, apply the identical fix to `TaskRepository`.
 
+### `ReferenceData` — one shared implementation for three identical lookup lists
+
+Positions (سمت‌ها), Customer Categories (دسته‌بندی مشتریان), and Activity Fields (زمینه فعالیت) are three admin-managed lists that are 100% identical in shape — just "Id + Title", list + create, no update/delete. Rather than tripling the Domain/Application/Infrastructure/Api boilerplate, there's **one** `ReferenceListItem` entity (`CrmTask.Domain/ReferenceData/`) with a `ReferenceListKind` enum discriminator, **one** `ReferenceListItemEntityConfiguration` (single `ReferenceListItems` table, unique index on `(Kind, Title)` so the same title can't be added twice within a kind), **one** `IReferenceListService`/`ReferenceListRepository` pair, and **three thin Api controllers** (`PositionsController`, `CustomerCategoriesController`, `ActivityFieldsController`) that each just inherit `ReferenceListControllerBase` with their own route and fixed `Kind` — giving three clean REST resources (`/api/positions`, `/api/customer-categories`, `/api/activity-fields`) without three copies of the actual logic. The frontend mirrors this with one generic `ReferenceListPage` component (`frontend/src/shared/referenceData/`) and three one-line page wrappers.
+
+Fields elsewhere that read from these lists (`StaffMember.Position`, `CustomerPersonnel.Position`, `Customer.CategoryTitle`, `Customer.ActivityField`) store the chosen **title string directly**, not a foreign key — deliberately simple for now (no join, no cascade-on-rename concern to handle yet); revisit only if a real referential-integrity need shows up later.
+
+### `TaskItem.CreatedByStaffId` — a second, distinct staff reference
+
+`AssignedToStaffId` (who the task is for) and `CreatedByStaffId` (who registered it) are separate fields — a task can be created by one staff member and assigned to another. This exists specifically to drive the Dashboard's "کارهای من" tab (tasks assigned to me OR created by me). Both are required, non-nullable `Guid` FKs to `StaffMembers`, configured as two independent `HasOne<StaffMember>()` relationships in `TaskItemEntityConfiguration` — EF Core handles multiple FKs to the same principal type fine as long as each has its own `HasForeignKey` and no shared navigation property is implied.
+
+### A real migration gotcha: adding a non-nullable FK column to a table with existing rows
+
+Adding `CreatedByStaffId` (non-nullable `Guid`) to the already-populated `Tasks` table crashed on `dotnet run` against the real dev database: `dotnet ef migrations add` generates `ADD COLUMN ... DEFAULT '00000000-0000-0000-0000-000000000000'` for existing rows (the CLR default for a non-nullable value type) — then the very next migration step, `ALTER TABLE ADD CONSTRAINT FK_Tasks_StaffMembers_CreatedByStaffId`, fails immediately because no `StaffMembers` row has that all-zero id.
+
+**Fix**: added a backfill `migrationBuilder.Sql("UPDATE [Tasks] SET [CreatedByStaffId] = [AssignedToStaffId];")` between the `AddColumn` and `AddForeignKey` steps in the generated migration — existing tasks' already-valid assignee is the most sensible available stand-in for an unknown historical creator. **This class of bug only shows up against a database that already has rows** (an empty/fresh dev or CI database never hits it) — caught here specifically because dev points at a real, populated SQL Server instance rather than a throwaway one. Any future non-nullable FK column added to a table that might already have data needs the same treatment: backfill before adding the constraint, not after.
+
 ### Commands
 
 ```
@@ -67,10 +83,37 @@ Automated integration tests (`CrmTask.Api.IntegrationTests`) still target `(loca
 frontend/
   src/
     main.tsx              # QueryClientProvider + antd ConfigProvider (RTL/theme/locale) wiring
-    App.tsx                # Thin shell: header + routed/composed feature pages
+    App.tsx                # Thin shell: CurrentUserProvider + header (title + CurrentUserPicker)
+    # + a sidebar Ant Design Menu (mode="inline"). One top-level "کاربر" (User)
+    # menu group for now — future role-based menus would be sibling top-level
+    # groups, not nested under it — with: داشبورد (Dashboard, the default/landing
+    # page), اطلاعات پایه (Basic Info: Staff, Positions, Customer Categories,
+    # Activity Fields), امور مشتریان (Customer Affairs: Customers), and انجام کار
+    # (Do Task: the full TasksPage). `pageComponents: Record<PageKey, () => JSX.Element>`
+    # maps menu item keys straight to page components — add a new page by adding
+    # one menu item + one map entry, no routing library involved.
     theme.ts               # Ant Design theme tokens (see frontend-design-system.md)
     shared/
       api/httpClient.ts    # Thin fetch wrapper (base URL from VITE_API_BASE_URL)
+      currentUser/
+        # A temporary "شما کیستید؟" (who are you?) simulator — CurrentUserContext.tsx
+        # (React context + useCurrentUser() hook, sessionStorage-backed so it
+        # resets per browser tab/session, NOT localStorage) and CurrentUserPicker.tsx
+        # (the header dropdown, populated from useStaff()). Stands in for real
+        # login (deliberately not built yet, see CLAUDE.md) so the Dashboard can
+        # filter "my tasks" and task creation can record a creator. Any page that
+        # needs "who is using the app right now" reads `useCurrentUser().currentStaffId`
+        # — don't invent a second mechanism.
+      referenceData/
+        # Generic list+create UI for the three admin-managed lookup lists
+        # (mirrors the backend's ReferenceListControllerBase consolidation):
+        # types.ts, referenceListApi.ts (factory: createReferenceListApi(basePath)),
+        # useReferenceList.ts (useReferenceList(queryKey, basePath) / useCreateReferenceListItem(...)),
+        # ReferenceListPage.tsx (the actual table+modal page, parameterized by
+        # labels/route). features/positions, features/customerCategories, and
+        # features/activityFields are each just a ~15-line wrapper passing their
+        # own labels/basePath/queryKey into ReferenceListPage — add a fourth list
+        # the same way, no new page logic needed.
       date/
         # The shared Jalali date components — every date input/display in the
         # app goes through one of these, not a raw antd DatePicker or dayjs
@@ -114,17 +157,40 @@ frontend/
         # Same pattern as contacts/ — a second row-action Drawer (ContractsPanel)
         # on CustomersPage. Start/end date fields use PersianDateField; the list
         # displays the backend's `startDateShamsi`/`endDateShamsi` directly.
+      positions/, customerCategories/, activityFields/
+        # Each just a thin page wrapping shared/referenceData/ReferenceListPage
+        # with its own labels/basePath/queryKey — see the shared/referenceData/
+        # entry above. Live under "اطلاعات پایه" in App.tsx's menu.
       staff/
-        # StaffPage.tsx: its own top-level tab in App.tsx (list + create only,
-        # no edit/deactivate — matches the backend's endpoints). Also still
-        # populates the assignee dropdown on TasksPage — not a login/auth
-        # system. See docs/configuration-and-secrets.md and the auth discussion
-        # in CLAUDE.md's history for why real authentication is a separate,
+        # StaffPage.tsx: list + create only (no edit/deactivate — matches the
+        # backend's endpoints), plus an optional Position field (a Select
+        # populated from useReferenceList('positions', '/api/positions'), same
+        # list Customer Personnel's position reads from). Also still populates
+        # the assignee dropdown on TasksPage — not a login/auth system. See
+        # docs/configuration-and-secrets.md and the auth discussion in
+        # CLAUDE.md's history for why real authentication is a separate,
         # deliberately-not-yet-built piece of work.
+      dashboard/
+        # DashboardPage.tsx — the menu's default/landing page. Two tabs: "کارهای
+        # جاری" (read-only — no add/edit, just TaskListTable's مشاهده/اتمام‌کار
+        # actions — filtered to `assignedToStaffId === currentStaffId ||
+        # createdByStaffId === currentStaffId`; shows an Empty prompt to pick a
+        # current user first if none is set) and "قراردادهای خاتمه‌یافته" (all
+        # contracts across every customer, via useAllContracts, filtered
+        # client-side to `status === 'Ended'`). Reuses tasks/TaskListTable.tsx
+        # and tasks/TaskDetailPanel.tsx rather than duplicating the row/detail
+        # UI — see the tasks/ entry below for why that extraction happened.
       tasks/
-        # A top-level page (its own tab in App.tsx), not nested under Customers
-        # — a task can be internal (customerId: null) or tied to a customer.
-        # TasksPage.tsx has an always-visible PersianCalendar at the top for
+        # A top-level page (reached via "انجام کار" in App.tsx's menu), not
+        # nested under Customers — a task can be internal (customerId: null)
+        # or tied to a customer. TaskListTable.tsx (table + مشاهده/اتمام‌کار
+        # row actions) was extracted out of TasksPage.tsx specifically so
+        # DashboardPage could reuse it without copying the column/action
+        # definitions — if a third place ever needs to list tasks, extend this
+        # component's props rather than forking it again. Creating a task
+        # requires a current user to be set (`useCurrentUser().currentStaffId`
+        # becomes `CreatedByStaffId`); TasksPage warns and refuses to open the
+        # create modal otherwise. TasksPage.tsx has an always-visible PersianCalendar at the top for
         # day-based filtering: selectedDate === null shows every task
         # (unfiltered, the default state); picking a day filters to that day's
         # Open tasks, with a "نمایش همه" toggle to also reveal that day's Done
@@ -164,6 +230,14 @@ A few non-obvious things came up writing tests against these:
 - **A page with more than one rmdp calendar on it is ambiguous by day-number text alone.** TasksPage has both an always-visible `PersianCalendar` and, inside the create-task Modal, a `PersianDateTimeField` popup — both render `role="dialog"` and the same day markup. Disambiguate the Modal itself with `screen.findByRole('dialog', { name: '<modal title>' })`, and disambiguate the *popup* calendar (vs. the inline one) by scoping to the element wrapped in react-multi-date-picker's floating positioner (an element with inline `style="position: absolute..."` as an ancestor) — see `withinDueDatePopup()` in `TasksPage.test.tsx` for the pattern.
 - **rmdp's nav arrows and day cells have no useful accessible name** (`aria-roledescription`, not `aria-label`) — query them via `document.querySelector('.rmdp-arrow-container.rmdp-right')` / `.rmdp-day` rather than `getByRole('button', { name: ... })`.
 - **`eslint-plugin-testing-library` is not installed in this project** — don't add `eslint-disable-next-line testing-library/...` comments for the node-access queries above; there's no rule to disable, and the disable comment itself becomes a lint error ("Definition for rule ... was not found").
+
+### Selecting an antd `Select` option in tests: click the inner content div, not the outer `role="option"` one
+
+Each rendered option is actually two nested elements — `<div role="option" aria-label="...">` wrapping a child `<div class="ant-select-item-option-content">` with the same text. `screen.findAllByText(label)` returns both (in that order), and clicking `[0]` (the outer, role-bearing one) **visually looks like it worked** — the closed Select shows the picked label — but doesn't actually register the value on the Form field; submission sends `null`. Only clicking `[1]` (the inner content div, i.e. `options[options.length - 1]`) fires antd's real `onChange`. This was found the hard way (a "passes visually, fails on submit" bug) wiring the Position/Category/Activity-field selects — don't use `getByRole('option', { name })` for antd Select in this codebase; use `screen.findAllByText(label)` and click the last match.
+
+### Don't assert an exact date/month in a test that navigates a calendar "relative to today"
+
+`ContactsPanel`'s next-follow-up test clicks the calendar's "next month" arrow and picks a day — the first version of this test then asserted the exact resulting Shamsi string (`1405/05/\d{2}`), which was only true on the day it was written. It failed the very next day the suite ran, once "today" rolled into a new month. There's no injectable clock for the frontend calendar components (unlike the backend's `TimeProvider` pattern) — so tests built around "whatever day/month it happens to be" should assert the *shape* of the result (e.g. `/\d{4}\/\d{2}\/\d{2}/`), not a hardcoded value.
 
 ### Commands
 

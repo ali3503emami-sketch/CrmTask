@@ -16,4 +16,6 @@ public record CustomerDto(
     string? Fax,
     string? Notes,
     string? NationalId,
+    string? CategoryTitle,
+    string? ActivityField,
     IReadOnlyList<CustomerPersonnelDto> Personnel);

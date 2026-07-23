@@ -71,12 +71,16 @@ public class CustomerServiceTests
             "02112345679",
             "یادداشت",
             "1234567890",
+            "صنعتی",
+            "تولید قطعات خودرو",
             [new CustomerPersonnelInput("سارا محمدی", "حسابدار", null, "09121112233", null)]);
 
         var result = await _sut.UpdateAsync(customer.Id, request);
 
         result!.Name.Should().Be("نام جدید");
         result.ManagerName.Should().Be("رضا کیانی");
+        result.CategoryTitle.Should().Be("صنعتی");
+        result.ActivityField.Should().Be("تولید قطعات خودرو");
         result.Personnel.Should().ContainSingle(p => p.FullName == "سارا محمدی");
         _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -86,7 +90,7 @@ public class CustomerServiceTests
     {
         _repository.Setup(r => r.GetTrackedByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Customer?)null);
-        var request = new UpdateCustomerRequest("نام", CustomerCategory.Legal, "02112345678", null, null, null, null, null, null, []);
+        var request = new UpdateCustomerRequest("نام", CustomerCategory.Legal, "02112345678", null, null, null, null, null, null, null, null, []);
 
         var result = await _sut.UpdateAsync(Guid.NewGuid(), request);
 

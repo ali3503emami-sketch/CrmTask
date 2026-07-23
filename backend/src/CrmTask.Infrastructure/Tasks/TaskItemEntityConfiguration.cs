@@ -25,6 +25,7 @@ public class TaskItemEntityConfiguration : IEntityTypeConfiguration<TaskItem>
 
         builder.HasIndex(t => t.CustomerId);
         builder.HasIndex(t => t.AssignedToStaffId);
+        builder.HasIndex(t => t.CreatedByStaffId);
 
         builder.HasOne<Customer>()
             .WithMany()
@@ -34,6 +35,11 @@ public class TaskItemEntityConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.HasOne<StaffMember>()
             .WithMany()
             .HasForeignKey(t => t.AssignedToStaffId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<StaffMember>()
+            .WithMany()
+            .HasForeignKey(t => t.CreatedByStaffId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // ChecklistItems is a read-only property (IReadOnlyList<ChecklistItem>); EF Core

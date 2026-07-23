@@ -31,6 +31,8 @@ export interface Customer {
   fax: string | null
   notes: string | null
   nationalId: string | null
+  categoryTitle: string | null
+  activityField: string | null
   personnel: CustomerPersonnel[]
 }
 
@@ -50,5 +52,7 @@ export interface UpdateCustomerInput {
   fax: string | null
   notes: string | null
   nationalId: string | null
+  categoryTitle: string | null
+  activityField: string | null
   personnel: CustomerPersonnelInput[]
 }

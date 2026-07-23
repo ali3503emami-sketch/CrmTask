@@ -23,6 +23,8 @@ public class UpdateCustomerRequestValidatorTests
             null,
             null,
             null,
+            null,
+            null,
             []);
 
         var result = _sut.TestValidate(request);
@@ -45,6 +47,8 @@ public class UpdateCustomerRequestValidatorTests
             null,
             null,
             null,
+            null,
+            null,
             []);
 
         var result = _sut.TestValidate(request);
@@ -59,6 +63,8 @@ public class UpdateCustomerRequestValidatorTests
             "شرکت فناوران البرز",
             CustomerCategory.Legal,
             "02112345678",
+            null,
+            null,
             null,
             null,
             null,

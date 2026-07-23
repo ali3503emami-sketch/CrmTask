@@ -48,6 +48,11 @@ public class TasksController(
             return NotFound($"Staff member {request.AssignedToStaffId} was not found.");
         }
 
+        if (await staffService.GetByIdAsync(request.CreatedByStaffId, cancellationToken) is null)
+        {
+            return NotFound($"Staff member {request.CreatedByStaffId} was not found.");
+        }
+
         if (request.CustomerId.HasValue && await customerService.GetByIdAsync(request.CustomerId.Value, cancellationToken) is null)
         {
             return NotFound($"Customer {request.CustomerId} was not found.");

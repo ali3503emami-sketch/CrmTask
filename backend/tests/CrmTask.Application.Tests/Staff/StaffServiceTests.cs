@@ -19,7 +19,7 @@ public class StaffServiceTests
     [Fact]
     public async Task CreateAsync_WithValidRequest_SavesAndReturnsStaffMember()
     {
-        var request = new CreateStaffMemberRequest("سارا محمدی", "09121112233");
+        var request = new CreateStaffMemberRequest("سارا محمدی", "09121112233", "مسئول دفتر");
 
         var result = await _sut.CreateAsync(request);
 
@@ -30,7 +30,7 @@ public class StaffServiceTests
     [Fact]
     public async Task GetActiveAsync_ReturnsOnlyActiveStaffFromRepository()
     {
-        var active = StaffMember.Create("سارا محمدی", "09121112233");
+        var active = StaffMember.Create("سارا محمدی", "09121112233", null);
         _repository.Setup(r => r.GetActiveAsync(It.IsAny<CancellationToken>())).ReturnsAsync([active]);
 
         var result = await _sut.GetActiveAsync();

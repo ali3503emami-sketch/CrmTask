@@ -10,5 +10,6 @@ public record TaskItemDto(
     string DueAtShamsi,
     Guid? CustomerId,
     Guid AssignedToStaffId,
+    Guid CreatedByStaffId,
     TaskItemStatus Status,
     IReadOnlyList<ChecklistItemDto> ChecklistItems);

@@ -48,7 +48,9 @@ describe('ContactsPanel', () => {
     await user.click(screen.getByRole('button', { name: 'ثبت تماس' }))
 
     await waitFor(async () => {
-      expect(await screen.findByText(/یادآوری پیگیری: 1405\/05\/\d{2}/)).toBeInTheDocument()
+      // Don't hardcode a specific month/year here — "next month from today" is
+      // relative to whatever day the suite actually runs on.
+      expect(await screen.findByText(/یادآوری پیگیری: \d{4}\/\d{2}\/\d{2}/)).toBeInTheDocument()
     })
   })
 })

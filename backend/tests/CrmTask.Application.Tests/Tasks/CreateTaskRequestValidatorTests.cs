@@ -10,6 +10,7 @@ public class CreateTaskRequestValidatorTests
 {
     private static readonly DateTimeOffset DueAt = new(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
     private static readonly Guid StaffId = Guid.NewGuid();
+    private static readonly Guid CreatedByStaffId = Guid.NewGuid();
     private readonly CreateTaskRequestValidator _sut = new();
 
     [Fact]
@@ -21,6 +22,7 @@ public class CreateTaskRequestValidatorTests
             DueAt,
             null,
             StaffId,
+            CreatedByStaffId,
             [new ChecklistFieldDefinition("چک شد؟", ChecklistFieldType.Checkbox, null)]);
 
         var result = _sut.TestValidate(request);
@@ -33,7 +35,7 @@ public class CreateTaskRequestValidatorTests
     [InlineData(" ")]
     public void Validate_WithMissingTitle_HasError(string title)
     {
-        var request = new CreateTaskRequest(title, string.Empty, DueAt, null, StaffId, []);
+        var request = new CreateTaskRequest(title, string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         var result = _sut.TestValidate(request);
 
@@ -43,11 +45,21 @@ public class CreateTaskRequestValidatorTests
     [Fact]
     public void Validate_WithEmptyAssignedStaffId_HasError()
     {
-        var request = new CreateTaskRequest("عنوان", string.Empty, DueAt, null, Guid.Empty, []);
+        var request = new CreateTaskRequest("عنوان", string.Empty, DueAt, null, Guid.Empty, CreatedByStaffId, []);
 
         var result = _sut.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(r => r.AssignedToStaffId);
+    }
+
+    [Fact]
+    public void Validate_WithEmptyCreatedByStaffId_HasError()
+    {
+        var request = new CreateTaskRequest("عنوان", string.Empty, DueAt, null, StaffId, Guid.Empty, []);
+
+        var result = _sut.TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(r => r.CreatedByStaffId);
     }
 
     [Fact]
@@ -59,6 +71,7 @@ public class CreateTaskRequestValidatorTests
             DueAt,
             null,
             StaffId,
+            CreatedByStaffId,
             [new ChecklistFieldDefinition("وضعیت", ChecklistFieldType.Dropdown, null)]);
 
         var result = _sut.TestValidate(request);

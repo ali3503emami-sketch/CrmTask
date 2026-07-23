@@ -3,12 +3,19 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { TasksPage } from './TasksPage'
+import { CurrentUserProvider } from '../../shared/currentUser/CurrentUserContext'
+import { sampleStaff } from '../../test/mocks/handlers'
 
 function renderPage() {
+  // Reuse the seeded staff member as "current user" too — these tests don't
+  // care about assignee vs. creator, just that task creation is unblocked.
+  sessionStorage.setItem('crmtask.currentStaffId', sampleStaff[0].id)
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <TasksPage />
+      <CurrentUserProvider>
+        <TasksPage />
+      </CurrentUserProvider>
     </QueryClientProvider>,
   )
 }

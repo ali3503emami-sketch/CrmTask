@@ -13,7 +13,7 @@ public class StaffControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     [Fact]
     public async Task Create_WithValidRequest_Returns201()
     {
-        var request = new CreateStaffMemberRequest("سارا محمدی", "09121112233");
+        var request = new CreateStaffMemberRequest("سارا محمدی", "09121112233", null);
 
         var response = await _client.PostAsJsonAsync("/api/staff", request);
 
@@ -25,7 +25,7 @@ public class StaffControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     [Fact]
     public async Task GetActive_ReturnsPreviouslyCreatedStaffMember()
     {
-        await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("علی رضایی", "09123334455"));
+        await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("علی رضایی", "09123334455", null));
 
         var response = await _client.GetAsync("/api/staff");
 

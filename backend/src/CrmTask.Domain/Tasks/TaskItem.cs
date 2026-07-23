@@ -30,6 +30,12 @@ public class TaskItem
 
     public Guid AssignedToStaffId { get; private set; }
 
+    /// <summary>
+    /// The staff member who registered this task — distinct from <see cref="AssignedToStaffId"/>
+    /// (who it's assigned to). Drives the Dashboard's "tasks I registered" tab.
+    /// </summary>
+    public Guid CreatedByStaffId { get; private set; }
+
     public TaskItemStatus Status { get; private set; }
 
     public IReadOnlyList<ChecklistItem> ChecklistItems => _checklistItems;
@@ -40,6 +46,7 @@ public class TaskItem
         DateTimeOffset dueAt,
         Guid? customerId,
         Guid assignedToStaffId,
+        Guid createdByStaffId,
         IEnumerable<ChecklistItem> checklistItems)
     {
         if (assignedToStaffId == Guid.Empty)
@@ -47,11 +54,17 @@ public class TaskItem
             throw new ArgumentException("A task must be assigned to a staff member.", nameof(assignedToStaffId));
         }
 
+        if (createdByStaffId == Guid.Empty)
+        {
+            throw new ArgumentException("A task must record who created it.", nameof(createdByStaffId));
+        }
+
         var task = new TaskItem
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
             AssignedToStaffId = assignedToStaffId,
+            CreatedByStaffId = createdByStaffId,
             Status = TaskItemStatus.Open,
         };
         task.Update(title, description, dueAt, customerId);

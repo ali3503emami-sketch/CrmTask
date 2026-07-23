@@ -29,6 +29,8 @@ public class CustomerEntityConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Fax).HasMaxLength(20);
         builder.Property(c => c.Notes).HasMaxLength(2000);
         builder.Property(c => c.NationalId).HasMaxLength(20);
+        builder.Property(c => c.CategoryTitle).HasMaxLength(200);
+        builder.Property(c => c.ActivityField).HasMaxLength(200);
 
         builder.OwnsMany(c => c.Personnel, personnel =>
         {

@@ -16,6 +16,7 @@ public class TaskService(ITaskRepository repository) : ITaskService
             request.DueAt,
             request.CustomerId,
             request.AssignedToStaffId,
+            request.CreatedByStaffId,
             checklistItems);
 
         await repository.AddAsync(task, cancellationToken);
@@ -107,6 +108,7 @@ public class TaskService(ITaskRepository repository) : ITaskService
             task.DueAtShamsi,
             task.CustomerId,
             task.AssignedToStaffId,
+            task.CreatedByStaffId,
             task.Status,
             checklistItems);
     }

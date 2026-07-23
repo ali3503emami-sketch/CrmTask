@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { CustomerProfilePanel } from './CustomerProfilePanel'
 import type { Customer } from './types'
-import { sampleCustomers } from '../../test/mocks/handlers'
+import { sampleCustomers, samplePositions } from '../../test/mocks/handlers'
 
 const customer: Customer = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -20,6 +20,8 @@ const customer: Customer = {
   fax: null,
   notes: null,
   nationalId: null,
+  categoryTitle: null,
+  activityField: null,
   personnel: [],
 }
 
@@ -41,6 +43,7 @@ describe('CustomerProfilePanel', () => {
   })
 
   it('saves profile fields and a new personnel entry', async () => {
+    samplePositions.push({ id: 'p1', title: 'مسئول دفتر' })
     renderPanel()
     const user = userEvent.setup()
 
@@ -48,7 +51,9 @@ describe('CustomerProfilePanel', () => {
     await user.type(screen.getByLabelText('شماره ملی / شناسه ملی'), '1234567890')
     await user.click(screen.getByRole('button', { name: 'افزودن پرسنل' }))
     await user.type(screen.getByLabelText('نام پرسنل 1'), 'سارا محمدی')
-    await user.type(screen.getByLabelText('سمت'), 'مسئول دفتر')
+    await user.click(screen.getByLabelText('سمت'))
+    const positionOptions = await screen.findAllByText('مسئول دفتر')
+    await user.click(positionOptions[positionOptions.length - 1])
 
     await user.click(screen.getByRole('button', { name: 'ذخیره تغییرات' }))
 

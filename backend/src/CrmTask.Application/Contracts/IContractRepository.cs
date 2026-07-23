@@ -7,4 +7,6 @@ public interface IContractRepository
     Task AddAsync(Contract contract, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Contract>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Contract>> GetAllAsync(CancellationToken cancellationToken = default);
 }

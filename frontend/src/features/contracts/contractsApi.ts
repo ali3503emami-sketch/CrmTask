@@ -3,6 +3,7 @@ import type { Contract, CreateContractInput } from './types'
 
 export const contractsApi = {
   getByCustomer: (customerId: string) => httpClient.get<Contract[]>(`/api/customers/${customerId}/contracts`),
+  getAll: () => httpClient.get<Contract[]>('/api/contracts'),
   create: (customerId: string, input: CreateContractInput) =>
     httpClient.post<Contract>(`/api/customers/${customerId}/contracts`, input),
 }

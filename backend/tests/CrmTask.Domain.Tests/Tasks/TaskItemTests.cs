@@ -8,25 +8,35 @@ public class TaskItemTests
 {
     private static readonly DateTimeOffset DueAt = new(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
     private static readonly Guid StaffId = Guid.NewGuid();
+    private static readonly Guid CreatedByStaffId = Guid.NewGuid();
     private static readonly Guid CustomerId = Guid.NewGuid();
 
     [Fact]
     public void Create_InternalTask_WithoutCustomer_Succeeds()
     {
-        var task = TaskItem.Create("بررسی سرور", "بررسی وضعیت سرور پشتیبان", DueAt, customerId: null, assignedToStaffId: StaffId, []);
+        var task = TaskItem.Create("بررسی سرور", "بررسی وضعیت سرور پشتیبان", DueAt, customerId: null, assignedToStaffId: StaffId, createdByStaffId: CreatedByStaffId, []);
 
         task.Id.Should().NotBeEmpty();
         task.Title.Should().Be("بررسی سرور");
         task.CustomerId.Should().BeNull();
         task.AssignedToStaffId.Should().Be(StaffId);
+        task.CreatedByStaffId.Should().Be(CreatedByStaffId);
         task.Status.Should().Be(TaskItemStatus.Open);
         task.DueAt.Should().Be(DueAt);
     }
 
     [Fact]
+    public void Create_WithEmptyCreatedByStaffId_Throws()
+    {
+        var act = () => TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, Guid.Empty, []);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("createdByStaffId");
+    }
+
+    [Fact]
     public void Create_CustomerTask_WithCustomerId_Succeeds()
     {
-        var task = TaskItem.Create("پیگیری قرارداد", string.Empty, DueAt, CustomerId, StaffId, []);
+        var task = TaskItem.Create("پیگیری قرارداد", string.Empty, DueAt, CustomerId, StaffId, CreatedByStaffId, []);
 
         task.CustomerId.Should().Be(CustomerId);
     }
@@ -37,7 +47,7 @@ public class TaskItemTests
     [InlineData(null)]
     public void Create_WithMissingTitle_Throws(string? title)
     {
-        var act = () => TaskItem.Create(title!, string.Empty, DueAt, null, StaffId, []);
+        var act = () => TaskItem.Create(title!, string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         act.Should().Throw<ArgumentException>().WithParameterName("title");
     }
@@ -51,7 +61,7 @@ public class TaskItemTests
             ChecklistItem.Create("توضیحات", ChecklistFieldType.TextBox, null),
         };
 
-        var task = TaskItem.Create("کار با چک‌لیست", string.Empty, DueAt, null, StaffId, checklist);
+        var task = TaskItem.Create("کار با چک‌لیست", string.Empty, DueAt, null, StaffId, CreatedByStaffId, checklist);
 
         task.ChecklistItems.Should().HaveCount(2);
     }
@@ -59,7 +69,7 @@ public class TaskItemTests
     [Fact]
     public void MarkAsDone_TransitionsStatusToDone()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         task.MarkAsDone();
 
@@ -69,7 +79,7 @@ public class TaskItemTests
     [Fact]
     public void MarkAsDone_WhenAlreadyDone_Throws()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         task.MarkAsDone();
 
         var act = task.MarkAsDone;
@@ -80,7 +90,7 @@ public class TaskItemTests
     [Fact]
     public void Reassign_ChangesAssignedStaff()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         var newStaffId = Guid.NewGuid();
 
         task.Reassign(newStaffId);
@@ -91,7 +101,7 @@ public class TaskItemTests
     [Fact]
     public void Reassign_WithEmptyId_Throws()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         var act = () => task.Reassign(Guid.Empty);
 
@@ -102,7 +112,7 @@ public class TaskItemTests
     public void SetChecklistItemValue_UpdatesTheMatchingItem()
     {
         var checklistItem = ChecklistItem.Create("چک شد؟", ChecklistFieldType.Checkbox, null);
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, [checklistItem]);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, [checklistItem]);
 
         task.SetChecklistItemValue(checklistItem.Id, "true");
 
@@ -112,7 +122,7 @@ public class TaskItemTests
     [Fact]
     public void SetChecklistItemValue_WithUnknownItemId_Throws()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         var act = () => task.SetChecklistItemValue(Guid.NewGuid(), "true");
 
@@ -122,7 +132,7 @@ public class TaskItemTests
     [Fact]
     public void Create_SetsDueAtShamsi()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
 
         task.DueAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(DueAt));
     }
@@ -130,7 +140,7 @@ public class TaskItemTests
     [Fact]
     public void Update_ChangesTitleDescriptionDueAtAndCustomer()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         var newDueAt = DueAt.AddDays(1);
 
         task.Update("عنوان جدید", "توضیحات جدید", newDueAt, CustomerId);
@@ -145,7 +155,7 @@ public class TaskItemTests
     [Fact]
     public void Update_WhenTaskIsDone_Throws()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         task.MarkAsDone();
 
         var act = () => task.Update("عنوان جدید", string.Empty, DueAt, null);
@@ -156,7 +166,7 @@ public class TaskItemTests
     [Fact]
     public void Reassign_WhenTaskIsDone_Throws()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         task.MarkAsDone();
 
         var act = () => task.Reassign(Guid.NewGuid());
@@ -168,7 +178,7 @@ public class TaskItemTests
     public void SetChecklistItemValue_WhenTaskIsDone_Throws()
     {
         var checklistItem = ChecklistItem.Create("چک شد؟", ChecklistFieldType.Checkbox, null);
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, [checklistItem]);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, [checklistItem]);
         task.MarkAsDone();
 
         var act = () => task.SetChecklistItemValue(checklistItem.Id, "true");

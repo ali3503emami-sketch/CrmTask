@@ -45,6 +45,16 @@ public class Customer
     /// </summary>
     public string? NationalId { get; private set; }
 
+    /// <summary>
+    /// دسته‌بندی مشتریان — a free-form business category chosen from the
+    /// admin-managed reference list (see ReferenceListKind.CustomerCategory),
+    /// distinct from <see cref="Category"/> (the fixed Individual/Legal type).
+    /// </summary>
+    public string? CategoryTitle { get; private set; }
+
+    /// <summary>زمینه فعالیت — chosen from ReferenceListKind.ActivityField.</summary>
+    public string? ActivityField { get; private set; }
+
     public IReadOnlyList<CustomerPersonnel> Personnel => _personnel;
 
     public static Customer Create(string name, CustomerCategory category, string phone)
@@ -84,7 +94,9 @@ public class Customer
         string? address,
         string? fax,
         string? notes,
-        string? nationalId)
+        string? nationalId,
+        string? categoryTitle,
+        string? activityField)
     {
         ManagerName = string.IsNullOrWhiteSpace(managerName) ? null : managerName.Trim();
         ManagerBirthDate = managerBirthDate;
@@ -93,6 +105,8 @@ public class Customer
         Fax = string.IsNullOrWhiteSpace(fax) ? null : fax.Trim();
         Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         NationalId = string.IsNullOrWhiteSpace(nationalId) ? null : nationalId.Trim();
+        CategoryTitle = string.IsNullOrWhiteSpace(categoryTitle) ? null : categoryTitle.Trim();
+        ActivityField = string.IsNullOrWhiteSpace(activityField) ? null : activityField.Trim();
     }
 
     public void ReplacePersonnel(IEnumerable<CustomerPersonnel> personnel)

@@ -14,6 +14,10 @@ public class CreateTaskRequestValidator : AbstractValidator<CreateTaskRequest>
             .NotEqual(Guid.Empty)
             .WithMessage("A task must be assigned to a staff member.");
 
+        RuleFor(r => r.CreatedByStaffId)
+            .NotEqual(Guid.Empty)
+            .WithMessage("A task must record who created it.");
+
         RuleForEach(r => r.ChecklistFields).SetValidator(new ChecklistFieldDefinitionValidator());
     }
 }

@@ -87,6 +87,22 @@ public class ContractsControllerTests(CustomApiFactory factory) : IClassFixture<
         body.Should().Contain("قرارداد نگهداری");
     }
 
+    [Fact]
+    public async Task GetAll_ReturnsContractAcrossCustomersWithCustomerId()
+    {
+        var customerId = await CreateCustomerAsync();
+        var json = """{"title":"قرارداد قابل جستجوی سراسری","amount":1000,"startDate":"2026-01-01","endDate":"2026-12-31"}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        await _client.PostAsync($"/api/customers/{customerId}/contracts", content);
+
+        var response = await _client.GetAsync("/api/contracts");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("قرارداد قابل جستجوی سراسری");
+        body.Should().Contain($"\"customerId\":\"{customerId}\"");
+    }
+
     private async Task<Guid> CreateCustomerAsync()
     {
         var request = new CreateCustomerRequest("شرکت فناوران البرز", CustomerCategory.Legal, "02112345678");

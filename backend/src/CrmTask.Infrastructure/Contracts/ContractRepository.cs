@@ -20,4 +20,12 @@ public class ContractRepository(CrmDbContext dbContext) : IContractRepository
             .OrderByDescending(c => c.EndDate)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Contract>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Contracts
+            .AsNoTracking()
+            .OrderByDescending(c => c.EndDate)
+            .ToListAsync(cancellationToken);
+    }
 }

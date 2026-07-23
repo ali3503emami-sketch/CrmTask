@@ -6,4 +6,5 @@ public record CreateTaskRequest(
     DateTimeOffset DueAt,
     Guid? CustomerId,
     Guid AssignedToStaffId,
+    Guid CreatedByStaffId,
     IReadOnlyList<ChecklistFieldDefinition> ChecklistFields);

@@ -101,6 +101,8 @@ public class CustomersControllerTests(CustomApiFactory factory) : IClassFixture<
               "fax": "02112345679",
               "notes": "یادداشت",
               "nationalId": "1234567890",
+              "categoryTitle": "صنعتی",
+              "activityField": "تولید قطعات خودرو",
               "personnel": [
                 { "fullName": "سارا محمدی", "position": "حسابدار", "phone": null, "mobile": "09121112233", "email": null }
               ]
@@ -114,6 +116,8 @@ public class CustomersControllerTests(CustomApiFactory factory) : IClassFixture<
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("\"name\":\"نام جدید\"");
         body.Should().Contain("\"managerName\":\"رضا کیانی\"");
+        body.Should().Contain("\"categoryTitle\":\"صنعتی\"");
+        body.Should().Contain("\"activityField\":\"تولید قطعات خودرو\"");
         body.Should().Contain("سارا محمدی");
     }
 

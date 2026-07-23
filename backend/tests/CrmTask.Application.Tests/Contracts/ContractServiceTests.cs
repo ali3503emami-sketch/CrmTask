@@ -61,4 +61,20 @@ public class ContractServiceTests
 
         result.Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task GetAllAsync_ReturnsContractsAcrossAllCustomers()
+    {
+        var otherCustomerId = Guid.NewGuid();
+        var contracts = new[]
+        {
+            Contract.Create(CustomerId, "قرارداد اول", 0m, StartDate, EndDate),
+            Contract.Create(otherCustomerId, "قرارداد دوم", 0m, StartDate, EndDate),
+        };
+        _repository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(contracts);
+
+        var result = await _sut.GetAllAsync();
+
+        result.Should().HaveCount(2);
+    }
 }

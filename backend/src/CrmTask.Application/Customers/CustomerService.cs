@@ -43,7 +43,9 @@ public class CustomerService(ICustomerRepository repository) : ICustomerService
             request.Address,
             request.Fax,
             request.Notes,
-            request.NationalId);
+            request.NationalId,
+            request.CategoryTitle,
+            request.ActivityField);
         customer.ReplacePersonnel(request.Personnel.Select(p =>
             CustomerPersonnel.Create(p.FullName, p.Position, p.Phone, p.Mobile, p.Email)));
 

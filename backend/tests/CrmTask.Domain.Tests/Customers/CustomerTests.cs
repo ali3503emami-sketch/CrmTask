@@ -90,7 +90,9 @@ public class CustomerTests
             address: "تهران، خیابان آزادی",
             fax: "02112345679",
             notes: "مشتری کلیدی",
-            nationalId: "1234567890");
+            nationalId: "1234567890",
+            categoryTitle: "صنعتی",
+            activityField: "تولید قطعات خودرو");
 
         customer.ManagerName.Should().Be("رضا کیانی");
         customer.ManagerBirthDate.Should().Be(managerBirthDate);
@@ -99,6 +101,8 @@ public class CustomerTests
         customer.Fax.Should().Be("02112345679");
         customer.Notes.Should().Be("مشتری کلیدی");
         customer.NationalId.Should().Be("1234567890");
+        customer.CategoryTitle.Should().Be("صنعتی");
+        customer.ActivityField.Should().Be("تولید قطعات خودرو");
     }
 
     [Fact]
@@ -106,7 +110,7 @@ public class CustomerTests
     {
         var customer = Customer.Create("شرکت فناوران البرز", CustomerCategory.Legal, "02112345678");
 
-        customer.UpdateProfile(null, null, null, null, null, null);
+        customer.UpdateProfile(null, null, null, null, null, null, null, null);
 
         customer.ManagerBirthDateShamsi.Should().BeNull();
     }

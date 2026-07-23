@@ -10,6 +10,7 @@ public class TaskServiceTests
 {
     private static readonly DateTimeOffset DueAt = new(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
     private static readonly Guid StaffId = Guid.NewGuid();
+    private static readonly Guid CreatedByStaffId = Guid.NewGuid();
 
     private readonly Mock<ITaskRepository> _repository = new();
     private readonly TaskService _sut;
@@ -28,6 +29,7 @@ public class TaskServiceTests
             DueAt,
             CustomerId: null,
             StaffId,
+            CreatedByStaffId,
             ChecklistFields: [new ChecklistFieldDefinition("چک شد؟", ChecklistFieldType.Checkbox, null)]);
 
         var result = await _sut.CreateAsync(request);
@@ -40,7 +42,7 @@ public class TaskServiceTests
     [Fact]
     public async Task MarkAsDoneAsync_UpdatesStatusAndPersists()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
 
         var result = await _sut.MarkAsDoneAsync(task.Id);
@@ -63,7 +65,7 @@ public class TaskServiceTests
     public async Task SetChecklistItemValueAsync_UpdatesTheItemAndPersists()
     {
         var checklistItem = ChecklistItem.Create("چک شد؟", ChecklistFieldType.Checkbox, null);
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, [checklistItem]);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, [checklistItem]);
         _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
 
         var result = await _sut.SetChecklistItemValueAsync(task.Id, checklistItem.Id, "true");
@@ -75,7 +77,7 @@ public class TaskServiceTests
     [Fact]
     public async Task GetAllAsync_ReturnsTasksFromRepository()
     {
-        var tasks = new[] { TaskItem.Create("کار اول", string.Empty, DueAt, null, StaffId, []) };
+        var tasks = new[] { TaskItem.Create("کار اول", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []) };
         _repository.Setup(r => r.GetAllAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(tasks);
 
         var result = await _sut.GetAllAsync(customerId: null);
@@ -86,7 +88,7 @@ public class TaskServiceTests
     [Fact]
     public async Task GetByIdAsync_WhenFound_ReturnsTask()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
 
         var result = await _sut.GetByIdAsync(task.Id);
@@ -107,7 +109,7 @@ public class TaskServiceTests
     [Fact]
     public async Task UpdateAsync_UpdatesFieldsAndPersists()
     {
-        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, []);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
         var request = new UpdateTaskRequest("عنوان جدید", "توضیحات جدید", DueAt.AddDays(1), null);
 

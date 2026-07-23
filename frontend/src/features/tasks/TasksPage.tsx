@@ -1,20 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Form, Input, Modal, Select, Space, Statistic, Table, Tag } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
+import { Button, Card, Form, Input, message, Modal, Select, Space, Statistic } from 'antd'
 import { PersianCalendar } from '../../shared/date/PersianCalendar'
 import { PersianDateTimeField } from '../../shared/date/PersianDateTimeField'
+import { useCurrentUser } from '../../shared/currentUser/CurrentUserContext'
 import { useTasks } from './useTasks'
 import { useCreateTask } from './useCreateTask'
 import { useMarkTaskDone } from './useMarkTaskDone'
 import { useStaff } from '../staff/useStaff'
 import { useCustomers } from '../customers/useCustomers'
 import { TaskDetailPanel } from './TaskDetailPanel'
-import type { ChecklistFieldType, TaskItem, TaskItemStatus } from './types'
-
-const statusLabel: Record<TaskItemStatus, { text: string; color: string }> = {
-  Open: { text: 'باز', color: 'processing' },
-  Done: { text: 'انجام‌شده', color: 'success' },
-}
+import { TaskListTable } from './TaskListTable'
+import type { ChecklistFieldType } from './types'
 
 const fieldTypeOptions: { value: ChecklistFieldType; label: string }[] = [
   { value: 'Checkbox', label: 'چک‌باکس' },
@@ -46,6 +42,7 @@ export function TasksPage() {
   const { data: customers } = useCustomers()
   const createTask = useCreateTask()
   const markDone = useMarkTaskDone()
+  const { currentStaffId } = useCurrentUser()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form] = Form.useForm<CreateTaskFormValues>()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
@@ -68,6 +65,10 @@ export function TasksPage() {
   }, [tasks, selectedDate, showAllForDay])
 
   const handleOpenCreateModal = () => {
+    if (!currentStaffId) {
+      message.warning('لطفاً ابتدا مشخص کنید شما کیستید.')
+      return
+    }
     form.resetFields()
     if (selectedDate) {
       form.setFieldValue('dueAt', new Date(`${selectedDate}T09:00:00`).toISOString())
@@ -76,12 +77,17 @@ export function TasksPage() {
   }
 
   const handleSubmit = async (values: CreateTaskFormValues) => {
+    if (!currentStaffId) {
+      message.warning('لطفاً ابتدا مشخص کنید شما کیستید.')
+      return
+    }
     await createTask.mutateAsync({
       title: values.title,
       description: values.description ?? '',
       dueAt: values.dueAt,
       customerId: values.customerId ?? null,
       assignedToStaffId: values.assignedToStaffId,
+      createdByStaffId: currentStaffId,
       checklistFields: (values.checklistFields ?? []).map((f) => ({
         label: f.label,
         fieldType: f.fieldType,
@@ -98,41 +104,6 @@ export function TasksPage() {
   }
 
   const openTasksCount = (tasks ?? []).filter((t) => t.status === 'Open').length
-
-  const columns: ColumnsType<TaskItem> = [
-    { title: 'عنوان', dataIndex: 'title', key: 'title' },
-    { title: 'سررسید', dataIndex: 'dueAtShamsi', key: 'dueAtShamsi', width: 160 },
-    {
-      title: 'مسئول',
-      key: 'assignee',
-      width: 140,
-      render: (_, task) => staffNameById.get(task.assignedToStaffId) ?? '—',
-    },
-    {
-      title: 'وضعیت',
-      dataIndex: 'status',
-      key: 'status',
-      width: 110,
-      render: (status: TaskItemStatus) => <Tag color={statusLabel[status].color}>{statusLabel[status].text}</Tag>,
-    },
-    {
-      title: 'عملیات',
-      key: 'actions',
-      width: 200,
-      render: (_, task) => (
-        <Space>
-          <Button size="small" onClick={() => setSelectedTaskId(task.id)}>
-            مشاهده
-          </Button>
-          {task.status === 'Open' && (
-            <Button size="small" onClick={() => markDone.mutate(task.id)}>
-              اتمام کار
-            </Button>
-          )}
-        </Space>
-      ),
-    },
-  ]
 
   return (
     <div>
@@ -163,13 +134,12 @@ export function TasksPage() {
           )
         }
       >
-        <Table
-          size="small"
-          rowKey="id"
-          loading={isLoading}
-          columns={columns}
-          dataSource={displayedTasks}
-          pagination={false}
+        <TaskListTable
+          tasks={displayedTasks}
+          isLoading={isLoading}
+          staffNameById={staffNameById}
+          onView={setSelectedTaskId}
+          onMarkDone={(taskId) => markDone.mutate(taskId)}
         />
       </Card>
 

@@ -4,6 +4,7 @@ import type { Contact } from '../../features/contacts/types'
 import type { Contract, ContractStatus } from '../../features/contracts/types'
 import type { StaffMember } from '../../features/staff/types'
 import type { TaskItem } from '../../features/tasks/types'
+import type { ReferenceListItem } from '../../shared/referenceData/types'
 import { toShamsi } from './toShamsi'
 
 // The "happy path" most tests can rely on without extra setup — see
@@ -24,6 +25,8 @@ const initialCustomers: Customer[] = [
     fax: null,
     notes: null,
     nationalId: null,
+    categoryTitle: null,
+    activityField: null,
     personnel: [],
   },
 ]
@@ -39,10 +42,14 @@ const initialStaff: StaffMember[] = [
     id: '22222222-2222-2222-2222-222222222222',
     fullName: 'سارا محمدی',
     phoneNumber: '09121112233',
+    position: null,
     isActive: true,
   },
 ]
 const initialTasks: TaskItem[] = []
+const initialPositions: ReferenceListItem[] = []
+const initialCustomerCategories: ReferenceListItem[] = []
+const initialActivityFields: ReferenceListItem[] = []
 
 // Mutable copies so a POST followed by a GET behaves like a real backend within
 // a test; resetMockData() (called in test/setup.ts's afterEach) undoes any
@@ -52,6 +59,9 @@ export let sampleContacts: Contact[] = [...initialContacts]
 export let sampleContracts: Contract[] = [...initialContracts]
 export let sampleStaff: StaffMember[] = [...initialStaff]
 export let sampleTasks: TaskItem[] = [...initialTasks]
+export let samplePositions: ReferenceListItem[] = [...initialPositions]
+export let sampleCustomerCategories: ReferenceListItem[] = [...initialCustomerCategories]
+export let sampleActivityFields: ReferenceListItem[] = [...initialActivityFields]
 
 export function resetMockCustomers() {
   sampleCustomers = [...initialCustomers]
@@ -59,6 +69,21 @@ export function resetMockCustomers() {
   sampleContracts = [...initialContracts]
   sampleStaff = [...initialStaff]
   sampleTasks = [...initialTasks]
+  samplePositions = [...initialPositions]
+  sampleCustomerCategories = [...initialCustomerCategories]
+  sampleActivityFields = [...initialActivityFields]
+}
+
+function referenceListHandlers(route: string, items: () => ReferenceListItem[], setItems: (items: ReferenceListItem[]) => void) {
+  return [
+    http.get(`*${route}`, () => HttpResponse.json(items())),
+    http.post(`*${route}`, async ({ request }) => {
+      const body = (await request.json()) as { title: string }
+      const created: ReferenceListItem = { id: crypto.randomUUID(), title: body.title }
+      setItems([...items(), created])
+      return HttpResponse.json(created, { status: 201 })
+    }),
+  ]
 }
 
 function computeContractStatus(endDate: string): ContractStatus {
@@ -86,6 +111,8 @@ export const handlers = [
       fax: null,
       notes: null,
       nationalId: null,
+      categoryTitle: null,
+      activityField: null,
       personnel: [],
       ...body,
     }
@@ -106,6 +133,8 @@ export const handlers = [
     customer.fax = body.fax
     customer.notes = body.notes
     customer.nationalId = body.nationalId
+    customer.categoryTitle = body.categoryTitle
+    customer.activityField = body.activityField
     customer.personnel = toPersonnel(body.personnel)
     return HttpResponse.json(customer)
   }),
@@ -140,6 +169,7 @@ export const handlers = [
     sampleContracts.push(created)
     return HttpResponse.json(created, { status: 201 })
   }),
+  http.get('*/api/contracts', () => HttpResponse.json(sampleContracts)),
   http.get('*/api/staff', () => HttpResponse.json(sampleStaff)),
   http.post('*/api/staff', async ({ request }) => {
     const body = (await request.json()) as Omit<StaffMember, 'id' | 'isActive'>
@@ -155,6 +185,7 @@ export const handlers = [
       dueAt: string
       customerId: string | null
       assignedToStaffId: string
+      createdByStaffId: string
       checklistFields: { label: string; fieldType: TaskItem['checklistItems'][number]['fieldType']; options: string[] | null }[]
     }
     const created: TaskItem = {
@@ -165,6 +196,7 @@ export const handlers = [
       dueAtShamsi: toShamsi(body.dueAt),
       customerId: body.customerId,
       assignedToStaffId: body.assignedToStaffId,
+      createdByStaffId: body.createdByStaffId,
       status: 'Open',
       checklistItems: body.checklistFields.map((f) => ({
         id: crypto.randomUUID(),
@@ -203,4 +235,19 @@ export const handlers = [
     if (item) item.value = body.value
     return HttpResponse.json(task)
   }),
+  ...referenceListHandlers(
+    '/api/positions',
+    () => samplePositions,
+    (items) => (samplePositions = items),
+  ),
+  ...referenceListHandlers(
+    '/api/customer-categories',
+    () => sampleCustomerCategories,
+    (items) => (sampleCustomerCategories = items),
+  ),
+  ...referenceListHandlers(
+    '/api/activity-fields',
+    () => sampleActivityFields,
+    (items) => (sampleActivityFields = items),
+  ),
 ]

@@ -109,6 +109,10 @@ namespace CrmTask.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ActivityField")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("Address")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -117,6 +121,10 @@ namespace CrmTask.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CategoryTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
@@ -164,6 +172,30 @@ namespace CrmTask.Infrastructure.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("CrmTask.Domain.ReferenceData.ReferenceListItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind", "Title")
+                        .IsUnique();
+
+                    b.ToTable("ReferenceListItems");
+                });
+
             modelBuilder.Entity("CrmTask.Domain.Staff.StaffMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -183,6 +215,10 @@ namespace CrmTask.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Position")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.ToTable("StaffMembers");
@@ -195,6 +231,9 @@ namespace CrmTask.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AssignedToStaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedByStaffId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CustomerId")
@@ -224,6 +263,8 @@ namespace CrmTask.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedToStaffId");
+
+                    b.HasIndex("CreatedByStaffId");
 
                     b.HasIndex("CustomerId");
 
@@ -298,6 +339,12 @@ namespace CrmTask.Infrastructure.Migrations
                     b.HasOne("CrmTask.Domain.Staff.StaffMember", null)
                         .WithMany()
                         .HasForeignKey("AssignedToStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CrmTask.Domain.Staff.StaffMember", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

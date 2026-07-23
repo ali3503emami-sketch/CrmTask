@@ -1,5 +1,6 @@
 import { Button, Drawer, Form, Input, Select, Space } from 'antd'
 import { PersianDateField } from '../../shared/date/PersianDateField'
+import { useReferenceList } from '../../shared/referenceData/useReferenceList'
 import { useUpdateCustomer } from './useUpdateCustomer'
 import type { Customer, CustomerCategory, CustomerPersonnelInput } from './types'
 
@@ -13,6 +14,8 @@ interface CustomerProfileFormValues {
   fax?: string
   notes?: string
   nationalId?: string
+  categoryTitle?: string
+  activityField?: string
   personnel?: CustomerPersonnelInput[]
 }
 
@@ -25,6 +28,9 @@ interface CustomerProfilePanelProps {
 export function CustomerProfilePanel({ customer, open, onClose }: CustomerProfilePanelProps) {
   const updateCustomer = useUpdateCustomer()
   const [form] = Form.useForm<CustomerProfileFormValues>()
+  const { data: positions } = useReferenceList('positions', '/api/positions')
+  const { data: customerCategories } = useReferenceList('customerCategories', '/api/customer-categories')
+  const { data: activityFields } = useReferenceList('activityFields', '/api/activity-fields')
 
   const handleSubmit = async (values: CustomerProfileFormValues) => {
     await updateCustomer.mutateAsync({
@@ -39,6 +45,8 @@ export function CustomerProfilePanel({ customer, open, onClose }: CustomerProfil
         fax: values.fax?.trim() || null,
         notes: values.notes?.trim() || null,
         nationalId: values.nationalId?.trim() || null,
+        categoryTitle: values.categoryTitle || null,
+        activityField: values.activityField || null,
         personnel: (values.personnel ?? []).map((p) => ({
           fullName: p.fullName,
           position: p.position || null,
@@ -67,6 +75,8 @@ export function CustomerProfilePanel({ customer, open, onClose }: CustomerProfil
           fax: customer.fax ?? undefined,
           notes: customer.notes ?? undefined,
           nationalId: customer.nationalId ?? undefined,
+          categoryTitle: customer.categoryTitle ?? undefined,
+          activityField: customer.activityField ?? undefined,
           personnel: customer.personnel.map((p) => ({
             fullName: p.fullName,
             position: p.position ?? undefined,
@@ -105,6 +115,20 @@ export function CustomerProfilePanel({ customer, open, onClose }: CustomerProfil
         <Form.Item name="nationalId" label="شماره ملی / شناسه ملی">
           <Input />
         </Form.Item>
+        <Form.Item name="categoryTitle" label="دسته‌بندی مشتریان">
+          <Select
+            allowClear
+            placeholder="انتخاب دسته‌بندی"
+            options={(customerCategories ?? []).map((c) => ({ value: c.title, label: c.title }))}
+          />
+        </Form.Item>
+        <Form.Item name="activityField" label="زمینه فعالیت">
+          <Select
+            allowClear
+            placeholder="انتخاب زمینه فعالیت"
+            options={(activityFields ?? []).map((a) => ({ value: a.title, label: a.title }))}
+          />
+        </Form.Item>
         <Form.Item name="notes" label="یادداشت‌ها">
           <Input.TextArea rows={2} />
         </Form.Item>
@@ -122,7 +146,12 @@ export function CustomerProfilePanel({ customer, open, onClose }: CustomerProfil
                     <Input />
                   </Form.Item>
                   <Form.Item name={[field.name, 'position']} label="سمت">
-                    <Input />
+                    <Select
+                      allowClear
+                      style={{ minWidth: 140 }}
+                      placeholder="انتخاب سمت"
+                      options={(positions ?? []).map((p) => ({ value: p.title, label: p.title }))}
+                    />
                   </Form.Item>
                   <Form.Item name={[field.name, 'phone']} label="تلفن">
                     <Input />

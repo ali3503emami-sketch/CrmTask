@@ -20,6 +20,13 @@ public class ContractService(IContractRepository repository, TimeProvider timePr
         return contracts.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<ContractDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var contracts = await repository.GetAllAsync(cancellationToken);
+
+        return contracts.Select(ToDto).ToList();
+    }
+
     private ContractDto ToDto(Contract contract)
     {
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);

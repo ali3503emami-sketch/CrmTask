@@ -1,6 +1,7 @@
 using CrmTask.Domain.Contacts;
 using CrmTask.Domain.Contracts;
 using CrmTask.Domain.Customers;
+using CrmTask.Domain.ReferenceData;
 using CrmTask.Domain.Staff;
 using CrmTask.Domain.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ public class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbContext(op
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+
+    public DbSet<ReferenceListItem> ReferenceListItems => Set<ReferenceListItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

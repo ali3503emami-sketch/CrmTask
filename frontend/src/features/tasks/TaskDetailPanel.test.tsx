@@ -14,6 +14,7 @@ const openTask: TaskItem = {
   dueAtShamsi: '1405/05/10',
   customerId: null,
   assignedToStaffId: '22222222-2222-2222-2222-222222222222',
+  createdByStaffId: '22222222-2222-2222-2222-222222222222',
   status: 'Open',
   checklistItems: [{ id: 'c1', label: 'چک شد؟', fieldType: 'Checkbox', options: [], value: null }],
 }

@@ -23,6 +23,7 @@ export interface TaskItem {
   dueAtShamsi: string
   customerId: string | null
   assignedToStaffId: string
+  createdByStaffId: string
   status: TaskItemStatus
   checklistItems: ChecklistItem[]
 }
@@ -33,6 +34,7 @@ export interface CreateTaskInput {
   dueAt: string
   customerId: string | null
   assignedToStaffId: string
+  createdByStaffId: string
   checklistFields: ChecklistFieldDefinition[]
 }
 
