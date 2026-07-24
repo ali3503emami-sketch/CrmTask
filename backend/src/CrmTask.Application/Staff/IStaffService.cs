@@ -7,4 +7,6 @@ public interface IStaffService
     Task<IReadOnlyList<StaffMemberDto>> GetActiveAsync(CancellationToken cancellationToken = default);
 
     Task<StaffMemberDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<StaffMemberDto?> UpdateAsync(Guid id, CreateStaffMemberRequest request, CancellationToken cancellationToken = default);
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Button, Card, Form, Input, Modal, Select, Statistic, Table, Tag } from 'antd'
+import { Button, Card, Form, Input, Modal, Select, Space, Statistic, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useStaff } from './useStaff'
 import { useCreateStaffMember } from './useCreateStaffMember'
+import { useUpdateStaffMember } from './useUpdateStaffMember'
 import { useReferenceList } from '../../shared/referenceData/useReferenceList'
 import type { StaffMember } from './types'
 
@@ -15,14 +16,38 @@ interface CreateStaffFormValues {
 export function StaffPage() {
   const { data: staff, isLoading } = useStaff()
   const createStaffMember = useCreateStaffMember()
+  const updateStaffMember = useUpdateStaffMember()
   const { data: positions } = useReferenceList('positions', '/api/positions')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingStaffMember, setEditingStaffMember] = useState<StaffMember | null>(null)
   const [form] = Form.useForm<CreateStaffFormValues>()
 
+  const openCreateModal = () => {
+    setEditingStaffMember(null)
+    form.resetFields()
+    setIsModalOpen(true)
+  }
+
+  const openEditModal = (staffMember: StaffMember) => {
+    setEditingStaffMember(staffMember)
+    form.setFieldsValue({
+      fullName: staffMember.fullName,
+      phoneNumber: staffMember.phoneNumber,
+      position: staffMember.position ?? undefined,
+    })
+    setIsModalOpen(true)
+  }
+
   const handleSubmit = async (values: CreateStaffFormValues) => {
-    await createStaffMember.mutateAsync({ ...values, position: values.position ?? null })
+    const input = { ...values, position: values.position ?? null }
+    if (editingStaffMember) {
+      await updateStaffMember.mutateAsync({ id: editingStaffMember.id, input })
+    } else {
+      await createStaffMember.mutateAsync(input)
+    }
     form.resetFields()
     setIsModalOpen(false)
+    setEditingStaffMember(null)
   }
 
   const columns: ColumnsType<StaffMember> = [
@@ -38,6 +63,18 @@ export function StaffPage() {
         <Tag color={isActive ? 'success' : 'default'}>{isActive ? 'فعال' : 'غیرفعال'}</Tag>
       ),
     },
+    {
+      title: 'عملیات',
+      key: 'actions',
+      width: 100,
+      render: (_, staffMember) => (
+        <Space>
+          <Button size="small" onClick={() => openEditModal(staffMember)}>
+            ویرایش
+          </Button>
+        </Space>
+      ),
+    },
   ]
 
   return (
@@ -46,7 +83,7 @@ export function StaffPage() {
         size="small"
         title="پرسنل"
         extra={
-          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+          <Button type="primary" onClick={openCreateModal}>
             کارمند جدید
           </Button>
         }
@@ -59,7 +96,13 @@ export function StaffPage() {
         <Table size="small" rowKey="id" loading={isLoading} columns={columns} dataSource={staff} pagination={false} />
       </Card>
 
-      <Modal title="کارمند جدید" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} destroyOnHidden>
+      <Modal
+        title={editingStaffMember ? 'ویرایش کارمند' : 'کارمند جدید'}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        destroyOnHidden
+      >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="fullName"
@@ -79,8 +122,13 @@ export function StaffPage() {
             />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={createStaffMember.isPending} block>
-              ثبت
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={editingStaffMember ? updateStaffMember.isPending : createStaffMember.isPending}
+              block
+            >
+              {editingStaffMember ? 'ذخیره تغییرات' : 'ثبت'}
             </Button>
           </Form.Item>
         </Form>

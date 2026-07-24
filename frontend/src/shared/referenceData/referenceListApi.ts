@@ -10,5 +10,7 @@ export function createReferenceListApi(basePath: string) {
   return {
     getAll: () => httpClient.get<ReferenceListItem[]>(basePath),
     create: (input: CreateReferenceListItemInput) => httpClient.post<ReferenceListItem>(basePath, input),
+    update: (id: string, input: CreateReferenceListItemInput) =>
+      httpClient.put<ReferenceListItem>(`${basePath}/${id}`, input),
   }
 }

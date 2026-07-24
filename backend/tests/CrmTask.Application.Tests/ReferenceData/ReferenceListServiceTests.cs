@@ -38,4 +38,27 @@ public class ReferenceListServiceTests
 
         result.Should().ContainSingle(i => i.Title == "صنعتی");
     }
+
+    [Fact]
+    public async Task UpdateAsync_WhenFound_UpdatesTitleAndSaves()
+    {
+        var item = ReferenceListItem.Create(ReferenceListKind.Position, "مسئول دفتر");
+        _repository.Setup(r => r.GetTrackedByIdAsync(item.Id, It.IsAny<CancellationToken>())).ReturnsAsync(item);
+
+        var result = await _sut.UpdateAsync(item.Id, new CreateReferenceListItemRequest("مدیر دفتر"));
+
+        result!.Title.Should().Be("مدیر دفتر");
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetTrackedByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ReferenceListItem?)null);
+
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), new CreateReferenceListItemRequest("مدیر دفتر"));
+
+        result.Should().BeNull();
+    }
 }

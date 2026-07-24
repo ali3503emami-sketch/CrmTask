@@ -20,4 +20,14 @@ public class ReferenceListRepository(CrmDbContext dbContext) : IReferenceListRep
             .OrderBy(i => i.Title)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<ReferenceListItem?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.ReferenceListItems.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

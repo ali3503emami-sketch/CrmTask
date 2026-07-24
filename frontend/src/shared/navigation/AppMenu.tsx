@@ -16,7 +16,7 @@ export function AppMenu({ selectedKey, onSelect }: AppMenuProps) {
     <Menu
       mode="inline"
       style={{ height: '100%', borderInlineEnd: 'none' }}
-      defaultOpenKeys={['user-group', 'basic-info', 'customer-affairs']}
+      defaultOpenKeys={['user-group']}
       selectedKeys={[selectedKey]}
       items={menuItems}
       onClick={({ key }) => onSelect(key as PageKey)}

@@ -10,7 +10,9 @@ export function CurrentUserPicker() {
 
   return (
     <Space>
-      <Text type="secondary">شما کیستید؟</Text>
+      <Text type="secondary" className="current-user-label">
+        شما کیستید؟
+      </Text>
       <Select
         style={{ minWidth: 180 }}
         placeholder="انتخاب کاربر"

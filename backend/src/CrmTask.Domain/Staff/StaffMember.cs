@@ -43,4 +43,21 @@ public class StaffMember
     }
 
     public void Deactivate() => IsActive = false;
+
+    public void Update(string fullName, string phoneNumber, string? position)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            throw new ArgumentException("Full name is required.", nameof(fullName));
+        }
+
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            throw new ArgumentException("Phone number is required.", nameof(phoneNumber));
+        }
+
+        FullName = fullName.Trim();
+        PhoneNumber = phoneNumber.Trim();
+        Position = string.IsNullOrWhiteSpace(position) ? null : position.Trim();
+    }
 }

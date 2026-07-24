@@ -27,4 +27,14 @@ public class StaffRepository(CrmDbContext dbContext) : IStaffRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
+
+    public async Task<StaffMember?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.StaffMembers.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

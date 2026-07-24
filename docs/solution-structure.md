@@ -247,6 +247,14 @@ Each rendered option is actually two nested elements — `<div role="option" ari
 
 The mobile nav Drawer's exit transition (`rc-motion`, `motionDeadline: 500`) relies on jsdom `getComputedStyle`/animation-frame behavior that never actually completes in the test environment, so `waitForElementToBeRemoved` on the Drawer's content hangs until the test times out — even with a generous timeout. `rc-drawer` does synchronously toggle an `ant-drawer-open` class on the root wrapper off the `open` prop, independent of the motion state — assert on that class instead (see the "closes the mobile menu drawer..." test in `App.test.tsx`).
 
+### `react-multi-date-picker`'s inline `Calendar` doesn't fill its container by default
+
+The package's own CSS sets `.rmdp-wrapper{width:max-content}` — the day cells are already `flex:1`, but the wrapper caps itself to its content's intrinsic size regardless of how wide its parent is, leaving empty space beside it in a full-width `Card` (as on the Tasks page). Fixed by passing `className="persian-calendar-full-width"` to `PersianCalendar`'s underlying `<Calendar>` (react-multi-date-picker forwards `className` onto the wrapper element itself) and overriding `width: 100% !important` on it in `index.css`. Any future always-visible (non-popup) rmdp `Calendar` usage should reuse this class rather than re-discovering the same `max-content` cap.
+
+### Menu submenus start collapsed — only the top-level group opens by default
+
+`AppMenu`'s `defaultOpenKeys` is `['user-group']` only — "اطلاعات پایه" and "امور مشتریان" start closed and the user expands them on demand, rather than the whole tree being force-open on load (which was the original behavior and made the mobile Drawer menu overwhelming). Tests that click a leaf item under one of these groups (e.g. "معرفی پرسنل") must first click the group's own title to expand it — see `App.test.tsx`.
+
 ### Commands
 
 Unchanged from [frontend-design-system.md](./frontend-design-system.md)/root `CLAUDE.md`: `npm run dev`, `npm test`, `npm run lint`, `npm run build`.

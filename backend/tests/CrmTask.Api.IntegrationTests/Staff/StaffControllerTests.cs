@@ -33,4 +33,43 @@ public class StaffControllerTests(CustomApiFactory factory) : IClassFixture<Cust
         var staff = await response.Content.ReadFromJsonAsync<List<StaffMemberDto>>();
         staff.Should().Contain(s => s.FullName == "علی رضایی");
     }
+
+    [Fact]
+    public async Task Update_WithValidRequest_Returns200AndChangesIt()
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("علی رضایی", "09123334455", null));
+        var created = await createResponse.Content.ReadFromJsonAsync<StaffMemberDto>();
+
+        var updateResponse = await _client.PutAsJsonAsync(
+            $"/api/staff/{created!.Id}",
+            new CreateStaffMemberRequest("علی احمدی", "09121110000", "مدیر دفتر"));
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<StaffMemberDto>();
+        updated!.FullName.Should().Be("علی احمدی");
+        updated.Position.Should().Be("مدیر دفتر");
+    }
+
+    [Fact]
+    public async Task Update_WithUnknownId_ReturnsNotFound()
+    {
+        var response = await _client.PutAsJsonAsync(
+            $"/api/staff/{Guid.NewGuid()}",
+            new CreateStaffMemberRequest("علی احمدی", "09121110000", null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_WithInvalidPhoneNumber_ReturnsValidationProblem()
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/staff", new CreateStaffMemberRequest("علی رضایی", "09123334455", null));
+        var created = await createResponse.Content.ReadFromJsonAsync<StaffMemberDto>();
+
+        var response = await _client.PutAsJsonAsync(
+            $"/api/staff/{created!.Id}",
+            new CreateStaffMemberRequest("علی احمدی", "x", null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

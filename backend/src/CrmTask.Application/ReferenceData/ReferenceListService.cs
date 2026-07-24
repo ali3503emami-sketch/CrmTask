@@ -19,4 +19,18 @@ public class ReferenceListService(IReferenceListRepository repository) : IRefere
 
         return items.Select(i => new ReferenceListItemDto(i.Id, i.Title)).ToList();
     }
+
+    public async Task<ReferenceListItemDto?> UpdateAsync(Guid id, CreateReferenceListItemRequest request, CancellationToken cancellationToken = default)
+    {
+        var item = await repository.GetTrackedByIdAsync(id, cancellationToken);
+        if (item is null)
+        {
+            return null;
+        }
+
+        item.UpdateTitle(request.Title);
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return new ReferenceListItemDto(item.Id, item.Title);
+    }
 }

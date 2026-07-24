@@ -42,4 +42,22 @@ public abstract class ReferenceListControllerBase(
         var item = await service.CreateAsync(kind, request, cancellationToken);
         return CreatedAtAction(nameof(GetAll), item);
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<ReferenceListItemDto>> Update(Guid id, CreateReferenceListItemRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            foreach (var error in validationResult.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var item = await service.UpdateAsync(id, request, cancellationToken);
+        return item is null ? NotFound() : Ok(item);
+    }
 }

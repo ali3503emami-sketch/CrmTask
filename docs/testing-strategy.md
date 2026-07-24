@@ -43,6 +43,8 @@ Test naming mirrors the backend convention: describe behavior, not implementatio
 
 **Test timeout is 15s** (`vite.config.ts`'s `test.testTimeout`), not Vitest's 5s default. Multi-step interactions (type several form fields, open an antd `Select`, wait for a mutation to round-trip through MSW) reliably passed in isolation but timed out at 5s when the *whole* suite ran together under load — this was a real flaky-test cause, not a logic bug, confirmed by running the failing file alone (green) vs. the full suite (red). If a new test times out only under the full-suite run, suspect load/timing before suspecting the test's logic.
 
+**Backend integration tests share one disposable database across every test class in a single `dotnet test` run** (it's uniquely-named and dropped afterward — not persisted across runs — but *within* one run, `Create`/`Update` tests across different methods, even different test classes, all write to the same tables). Don't reuse a fixed literal value (e.g. a title string) across multiple test methods for an entity with a uniqueness constraint (`ReferenceListItemEntityConfiguration`'s `(Kind, Title)` unique index is a real example) — two methods creating the identical value collide with a `DbUpdateException` → 500, which then fails confusingly at the *next* line (an `EnsureSuccessStatusCode`/`ReadFromJsonAsync` call), not at the insert itself. Generate distinct values per test (e.g. suffix with `Guid.NewGuid()`) whenever a test creates data under a uniquely-constrained field.
+
 ## What must have tests
 
 - Every service/use-case class in the Application layer (business rules — contracts expiring, checklist validation, task assignment, etc.).

@@ -37,4 +37,24 @@ describe('StaffPage', () => {
       expect(await screen.findAllByText('علی رضایی')).not.toHaveLength(0)
     })
   })
+
+  it('edits an existing staff member through the ویرایش action and shows the change', async () => {
+    renderPage()
+    await screen.findAllByText(sampleStaff[0].fullName)
+    const user = userEvent.setup()
+
+    await user.click(screen.getAllByRole('button', { name: 'ویرایش' })[0])
+    const dialog = await screen.findByRole('dialog')
+    const nameInput = within(dialog).getByLabelText('نام و نام خانوادگی')
+    expect(nameInput).toHaveValue(sampleStaff[0].fullName)
+
+    await user.clear(nameInput)
+    await user.type(nameInput, 'سارا احمدی')
+    await user.click(within(dialog).getByRole('button', { name: 'ذخیره تغییرات' }))
+
+    await waitFor(() => {
+      expect(sampleStaff[0].fullName).toBe('سارا احمدی')
+    })
+    expect(await screen.findAllByText('سارا احمدی')).not.toHaveLength(0)
+  })
 })

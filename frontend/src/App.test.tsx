@@ -31,7 +31,10 @@ describe('App', () => {
     renderApp()
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole('menuitem', { name: 'معرفی پرسنل' }))
+    // Submenus are collapsed by default (only the top-level "کاربر" group is
+    // open) — expand "اطلاعات پایه" before its children become clickable.
+    await user.click(screen.getByRole('menuitem', { name: 'اطلاعات پایه' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'معرفی پرسنل' }))
 
     expect(await screen.findByText('تعداد پرسنل')).toBeInTheDocument()
   })
@@ -40,7 +43,8 @@ describe('App', () => {
     renderApp()
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole('menuitem', { name: 'معرفی مشتریان' }))
+    await user.click(screen.getByRole('menuitem', { name: 'امور مشتریان' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'معرفی مشتریان' }))
 
     expect(await screen.findByText('تعداد مشتریان')).toBeInTheDocument()
   })
@@ -70,7 +74,9 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'باز کردن منو' }))
     await screen.findByText('منو')
-    const drawerItems = screen.getAllByRole('menuitem', { name: 'معرفی پرسنل' })
+    const basicInfoGroups = screen.getAllByRole('menuitem', { name: 'اطلاعات پایه' })
+    await user.click(basicInfoGroups[basicInfoGroups.length - 1])
+    const drawerItems = await screen.findAllByRole('menuitem', { name: 'معرفی پرسنل' })
     await user.click(drawerItems[drawerItems.length - 1])
 
     expect(await screen.findByText('تعداد پرسنل')).toBeInTheDocument()

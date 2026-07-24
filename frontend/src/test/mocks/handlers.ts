@@ -83,6 +83,13 @@ function referenceListHandlers(route: string, items: () => ReferenceListItem[], 
       setItems([...items(), created])
       return HttpResponse.json(created, { status: 201 })
     }),
+    http.put(`*${route}/:itemId`, async ({ request, params }) => {
+      const item = items().find((i) => i.id === params.itemId)
+      if (!item) return new HttpResponse(null, { status: 404 })
+      const body = (await request.json()) as { title: string }
+      item.title = body.title
+      return HttpResponse.json(item)
+    }),
   ]
 }
 
@@ -176,6 +183,15 @@ export const handlers = [
     const created: StaffMember = { id: crypto.randomUUID(), isActive: true, ...body }
     sampleStaff.push(created)
     return HttpResponse.json(created, { status: 201 })
+  }),
+  http.put('*/api/staff/:staffId', async ({ request, params }) => {
+    const staffMember = sampleStaff.find((s) => s.id === params.staffId)
+    if (!staffMember) return new HttpResponse(null, { status: 404 })
+    const body = (await request.json()) as Omit<StaffMember, 'id' | 'isActive'>
+    staffMember.fullName = body.fullName
+    staffMember.phoneNumber = body.phoneNumber
+    staffMember.position = body.position
+    return HttpResponse.json(staffMember)
   }),
   http.get('*/api/tasks', () => HttpResponse.json(sampleTasks)),
   http.post('*/api/tasks', async ({ request }) => {

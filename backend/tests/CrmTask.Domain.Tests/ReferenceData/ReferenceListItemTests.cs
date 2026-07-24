@@ -26,4 +26,27 @@ public class ReferenceListItemTests
 
         act.Should().Throw<ArgumentException>().WithParameterName("title");
     }
+
+    [Fact]
+    public void UpdateTitle_WithValidTitle_ChangesTitle()
+    {
+        var item = ReferenceListItem.Create(ReferenceListKind.Position, "مسئول دفتر");
+
+        item.UpdateTitle("مدیر دفتر");
+
+        item.Title.Should().Be("مدیر دفتر");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void UpdateTitle_WithMissingTitle_Throws(string? title)
+    {
+        var item = ReferenceListItem.Create(ReferenceListKind.Position, "مسئول دفتر");
+
+        var act = () => item.UpdateTitle(title!);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("title");
+    }
 }

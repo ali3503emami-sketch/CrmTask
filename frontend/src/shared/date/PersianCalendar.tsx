@@ -21,6 +21,7 @@ export function PersianCalendar({ value, onChange }: PersianCalendarProps) {
 
   return (
     <Calendar
+      className="persian-calendar-full-width"
       calendar={persian}
       locale={persian_fa}
       value={dateValue}

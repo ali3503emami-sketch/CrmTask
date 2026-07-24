@@ -22,3 +22,15 @@ export function useCreateReferenceListItem(queryKey: string, basePath: string) {
     },
   })
 }
+
+export function useUpdateReferenceListItem(queryKey: string, basePath: string) {
+  const api = createReferenceListApi(basePath)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CreateReferenceListItemInput }) => api.update(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryKey] })
+    },
+  })
+}

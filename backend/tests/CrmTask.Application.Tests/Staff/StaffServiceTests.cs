@@ -48,4 +48,30 @@ public class StaffServiceTests
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task UpdateAsync_WhenFound_UpdatesAndSaves()
+    {
+        var staffMember = StaffMember.Create("سارا محمدی", "09121112233", null);
+        _repository.Setup(r => r.GetTrackedByIdAsync(staffMember.Id, It.IsAny<CancellationToken>())).ReturnsAsync(staffMember);
+
+        var request = new CreateStaffMemberRequest("سارا احمدی", "09129998877", "مدیر دفتر");
+        var result = await _sut.UpdateAsync(staffMember.Id, request);
+
+        result!.FullName.Should().Be("سارا احمدی");
+        result.Position.Should().Be("مدیر دفتر");
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetTrackedByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StaffMember?)null);
+
+        var request = new CreateStaffMemberRequest("سارا احمدی", "09129998877", null);
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), request);
+
+        result.Should().BeNull();
+    }
 }

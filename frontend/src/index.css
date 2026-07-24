@@ -22,6 +22,15 @@ body {
     sans-serif;
 }
 
+/* react-multi-date-picker's own CSS caps its wrapper at `width: max-content`,
+   so the always-visible PersianCalendar (see shared/date/PersianCalendar.tsx)
+   shrinks to its day-grid's intrinsic size and leaves empty space beside it
+   inside its Card — the day cells are already `flex: 1`, so stretching just
+   the wrapper is enough for them to fill the available width. */
+.persian-calendar-full-width.rmdp-wrapper {
+  width: 100% !important;
+}
+
 /* Standard mobile nav pattern: a persistent sidebar on desktop, a hamburger
    button opening an overlay Drawer on narrow screens (see App.tsx). */
 .mobile-menu-trigger {
@@ -35,5 +44,12 @@ body {
 
   .mobile-menu-trigger {
     display: inline-flex !important;
+  }
+
+  /* Redundant next to the select itself once space is tight; the header
+     title (see App.tsx) already truncates with an ellipsis at this width,
+     but dropping this label too avoids the header wrapping/overflowing. */
+  .current-user-label {
+    display: none !important;
   }
 }

@@ -55,7 +55,10 @@ function App() {
             onClick={() => setIsMobileMenuOpen(true)}
             aria-label="باز کردن منو"
           />
-          <Title level={4} style={{ margin: 0, flex: 1 }}>
+          <Title
+            level={4}
+            style={{ margin: 0, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          >
             سیستم مدیریت ارتباط با مشتری
           </Title>
           <CurrentUserPicker />

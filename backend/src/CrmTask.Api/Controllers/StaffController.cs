@@ -32,4 +32,22 @@ public class StaffController(IStaffService staffService, IValidator<CreateStaffM
         var staffMember = await staffService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetActive), staffMember);
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<StaffMemberDto>> Update(Guid id, CreateStaffMemberRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            foreach (var error in validationResult.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var staffMember = await staffService.UpdateAsync(id, request, cancellationToken);
+        return staffMember is null ? NotFound() : Ok(staffMember);
+    }
 }

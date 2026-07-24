@@ -27,4 +27,18 @@ public class StaffService(IStaffRepository repository) : IStaffService
 
         return staffMember?.Adapt<StaffMemberDto>();
     }
+
+    public async Task<StaffMemberDto?> UpdateAsync(Guid id, CreateStaffMemberRequest request, CancellationToken cancellationToken = default)
+    {
+        var staffMember = await repository.GetTrackedByIdAsync(id, cancellationToken);
+        if (staffMember is null)
+        {
+            return null;
+        }
+
+        staffMember.Update(request.FullName, request.PhoneNumber, request.Position);
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return staffMember.Adapt<StaffMemberDto>();
+    }
 }

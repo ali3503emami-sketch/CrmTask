@@ -47,4 +47,29 @@ describe('ReferenceListPage', () => {
     })
     expect(await screen.findAllByText('مسئول دفتر')).not.toHaveLength(0)
   })
+
+  it('edits an existing item through the ویرایش action and shows the change', async () => {
+    renderPage()
+    await screen.findByText('تعداد سمت‌ها')
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'سمت جدید' }))
+    let dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('عنوان'), 'مسئول دفتر')
+    await user.click(within(dialog).getByRole('button', { name: 'ثبت' }))
+    await waitFor(() => expect(samplePositions).toHaveLength(1))
+
+    await user.click(await screen.findByRole('button', { name: 'ویرایش' }))
+    dialog = await screen.findByRole('dialog')
+    const input = within(dialog).getByLabelText('عنوان')
+    expect(input).toHaveValue('مسئول دفتر')
+    await user.clear(input)
+    await user.type(input, 'مدیر دفتر')
+    await user.click(within(dialog).getByRole('button', { name: 'ذخیره تغییرات' }))
+
+    await waitFor(() => {
+      expect(samplePositions[0].title).toBe('مدیر دفتر')
+    })
+    expect(await screen.findAllByText('مدیر دفتر')).not.toHaveLength(0)
+  })
 })
