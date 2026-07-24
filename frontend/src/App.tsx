@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Layout, Menu, Typography } from 'antd'
-import type { MenuProps } from 'antd'
+import { Button, Drawer, Layout, Typography } from 'antd'
+import { MenuOutlined } from '@ant-design/icons'
 import { CustomersPage } from './features/customers/CustomersPage'
 import { TasksPage } from './features/tasks/TasksPage'
 import { StaffPage } from './features/staff/StaffPage'
@@ -10,11 +10,11 @@ import { ActivityFieldsPage } from './features/activityFields/ActivityFieldsPage
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { CurrentUserProvider } from './shared/currentUser/CurrentUserContext'
 import { CurrentUserPicker } from './shared/currentUser/CurrentUserPicker'
+import { AppMenu } from './shared/navigation/AppMenu'
+import type { PageKey } from './shared/navigation/menuItems'
 
 const { Header, Content, Sider } = Layout
 const { Title } = Typography
-
-type PageKey = 'dashboard' | 'staff' | 'positions' | 'customerCategories' | 'activityFields' | 'customers' | 'tasks'
 
 const pageComponents: Record<PageKey, () => React.JSX.Element> = {
   dashboard: DashboardPage,
@@ -26,35 +26,15 @@ const pageComponents: Record<PageKey, () => React.JSX.Element> = {
   tasks: TasksPage,
 }
 
-const menuItems: MenuProps['items'] = [
-  {
-    key: 'user-group',
-    label: 'کاربر',
-    children: [
-      { key: 'dashboard', label: 'داشبورد' },
-      {
-        key: 'basic-info',
-        label: 'اطلاعات پایه',
-        children: [
-          { key: 'staff', label: 'معرفی پرسنل' },
-          { key: 'positions', label: 'معرفی سمت‌ها' },
-          { key: 'customerCategories', label: 'معرفی دسته‌بندی مشتریان' },
-          { key: 'activityFields', label: 'معرفی زمینه فعالیت' },
-        ],
-      },
-      {
-        key: 'customer-affairs',
-        label: 'امور مشتریان',
-        children: [{ key: 'customers', label: 'معرفی مشتریان' }],
-      },
-      { key: 'tasks', label: 'انجام کار' },
-    ],
-  },
-]
-
 function App() {
   const [page, setPage] = useState<PageKey>('dashboard')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const ActivePage = pageComponents[page]
+
+  const handleSelectPage = (key: PageKey) => {
+    setPage(key)
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <CurrentUserProvider>
@@ -66,24 +46,34 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 12,
           }}
         >
-          <Title level={4} style={{ margin: 0 }}>
+          <Button
+            className="mobile-menu-trigger"
+            icon={<MenuOutlined />}
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="باز کردن منو"
+          />
+          <Title level={4} style={{ margin: 0, flex: 1 }}>
             سیستم مدیریت ارتباط با مشتری
           </Title>
           <CurrentUserPicker />
         </Header>
         <Layout>
-          <Sider width={240} style={{ background: '#fff' }}>
-            <Menu
-              mode="inline"
-              style={{ height: '100%', borderInlineEnd: '1px solid #e5e1d8' }}
-              defaultOpenKeys={['user-group', 'basic-info', 'customer-affairs']}
-              selectedKeys={[page]}
-              items={menuItems}
-              onClick={({ key }) => setPage(key as PageKey)}
-            />
+          <Sider className="desktop-sider" width={240} style={{ background: '#fff', borderInlineEnd: '1px solid #e5e1d8' }}>
+            <AppMenu selectedKey={page} onSelect={handleSelectPage} />
           </Sider>
+          <Drawer
+            title="منو"
+            placement="right"
+            open={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+            styles={{ body: { padding: 0 } }}
+            size="default"
+          >
+            <AppMenu selectedKey={page} onSelect={handleSelectPage} />
+          </Drawer>
           <Content style={{ padding: 20 }}>
             <ActivePage />
           </Content>

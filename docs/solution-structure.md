@@ -239,6 +239,14 @@ Each rendered option is actually two nested elements — `<div role="option" ari
 
 `ContactsPanel`'s next-follow-up test clicks the calendar's "next month" arrow and picks a day — the first version of this test then asserted the exact resulting Shamsi string (`1405/05/\d{2}`), which was only true on the day it was written. It failed the very next day the suite ran, once "today" rolled into a new month. There's no injectable clock for the frontend calendar components (unlike the backend's `TimeProvider` pattern) — so tests built around "whatever day/month it happens to be" should assert the *shape* of the result (e.g. `/\d{4}\/\d{2}\/\d{2}/`), not a hardcoded value.
 
+### `@ant-design/icons` is broken under Node/Vitest out of the box — patched via `patch-package`
+
+`@ant-design/icons@6.3.2`'s CJS build (`lib/colorUtils.js`) does `require("@ant-design/colors/es/generate")` — a hardcoded ES-module subpath, and `@ant-design/colors` ships no `exports` map to redirect it to a CJS twin. Any import from `@ant-design/icons` (even a single outline icon like `MenuOutlined`) eagerly loads this file and throws `SyntaxError: Cannot use import statement outside a module` under plain Node — which is exactly the module loader Vitest uses for externalized `node_modules` packages, so this broke as soon as the sidebar's mobile hamburger button (see nav section above) imported its first icon. Neither `vite.config.ts`'s `resolve.alias` nor Vitest's `server.deps.inline`/`deps.optimizer` config can fix it: the failing `require()` runs via Node's own module system, not through Vite's resolver, regardless of inlining settings. The package does ship a working CJS equivalent (`lib/generate.js`) right next to the broken import, so the fix is a one-line patch (`patches/@ant-design+icons+6.3.2.patch`, applied automatically via the `postinstall` script — **run `npm install` once after pulling, not just `npm ci --ignore-scripts`,** or the patch won't apply and this resurfaces).
+
+### antd `Drawer`'s close animation never settles under jsdom — don't assert on DOM removal
+
+The mobile nav Drawer's exit transition (`rc-motion`, `motionDeadline: 500`) relies on jsdom `getComputedStyle`/animation-frame behavior that never actually completes in the test environment, so `waitForElementToBeRemoved` on the Drawer's content hangs until the test times out — even with a generous timeout. `rc-drawer` does synchronously toggle an `ant-drawer-open` class on the root wrapper off the `open` prop, independent of the motion state — assert on that class instead (see the "closes the mobile menu drawer..." test in `App.test.tsx`).
+
 ### Commands
 
 Unchanged from [frontend-design-system.md](./frontend-design-system.md)/root `CLAUDE.md`: `npm run dev`, `npm test`, `npm run lint`, `npm run build`.

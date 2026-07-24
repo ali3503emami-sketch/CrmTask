@@ -53,4 +53,31 @@ describe('App', () => {
 
     expect(await screen.findByText('تعداد کارهای باز')).toBeInTheDocument()
   })
+
+  it('opens the mobile menu drawer via the hamburger button', async () => {
+    renderApp()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'باز کردن منو' }))
+
+    expect(await screen.findByText('منو')).toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem', { name: 'انجام کار' }).length).toBeGreaterThan(0)
+  })
+
+  it('closes the mobile menu drawer and navigates after picking an item from it', async () => {
+    renderApp()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'باز کردن منو' }))
+    await screen.findByText('منو')
+    const drawerItems = screen.getAllByRole('menuitem', { name: 'معرفی پرسنل' })
+    await user.click(drawerItems[drawerItems.length - 1])
+
+    expect(await screen.findByText('تعداد پرسنل')).toBeInTheDocument()
+    // The Drawer's exit animation never settles under jsdom (no real CSS
+    // transitions/rAF timing), so its content stays mounted — assert on the
+    // `ant-drawer-open` class instead, which antd's underlying rc-drawer
+    // toggles synchronously off the `open` prop, independent of the motion.
+    expect(document.querySelector('.ant-drawer')).not.toHaveClass('ant-drawer-open')
+  })
 })

@@ -21,3 +21,19 @@ body {
     'Segoe UI',
     sans-serif;
 }
+
+/* Standard mobile nav pattern: a persistent sidebar on desktop, a hamburger
+   button opening an overlay Drawer on narrow screens (see App.tsx). */
+.mobile-menu-trigger {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-sider {
+    display: none !important;
+  }
+
+  .mobile-menu-trigger {
+    display: inline-flex !important;
+  }
+}
