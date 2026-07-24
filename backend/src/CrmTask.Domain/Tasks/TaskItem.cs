@@ -10,6 +10,7 @@ namespace CrmTask.Domain.Tasks;
 public class TaskItem
 {
     private readonly List<ChecklistItem> _checklistItems = [];
+    private readonly List<TaskReferral> _referrals = [];
 
     private TaskItem()
     {
@@ -40,6 +41,8 @@ public class TaskItem
 
     public IReadOnlyList<ChecklistItem> ChecklistItems => _checklistItems;
 
+    public IReadOnlyList<TaskReferral> Referrals => _referrals;
+
     public static TaskItem Create(
         string title,
         string description,
@@ -67,13 +70,13 @@ public class TaskItem
             CreatedByStaffId = createdByStaffId,
             Status = TaskItemStatus.Open,
         };
-        task.Update(title, description, dueAt, customerId);
+        task.Update(title, description, dueAt, customerId, assignedToStaffId);
         task._checklistItems.AddRange(checklistItems);
 
         return task;
     }
 
-    public void Update(string title, string description, DateTimeOffset dueAt, Guid? customerId)
+    public void Update(string title, string description, DateTimeOffset dueAt, Guid? customerId, Guid assignedToStaffId)
     {
         EnsureEditable();
 
@@ -82,11 +85,47 @@ public class TaskItem
             throw new ArgumentException("Task title is required.", nameof(title));
         }
 
+        if (assignedToStaffId == Guid.Empty)
+        {
+            throw new ArgumentException("A task must be assigned to a staff member.", nameof(assignedToStaffId));
+        }
+
         Title = title.Trim();
         Description = description?.Trim() ?? string.Empty;
         DueAt = dueAt;
         DueAtShamsi = PersianDateConverter.ToShamsi(dueAt);
         CustomerId = customerId;
+        AssignedToStaffId = assignedToStaffId;
+    }
+
+    public void ReplaceChecklist(IEnumerable<ChecklistItem> checklistItems)
+    {
+        EnsureEditable();
+
+        _checklistItems.Clear();
+        _checklistItems.AddRange(checklistItems);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="staffId"/> may refer this task onward — the
+    /// current assignee, or anyone it has ever been referred to (see <see cref="Refer"/>).
+    /// Also determines whether the task shows up in that person's "کارهای جاری" list.
+    /// </summary>
+    public bool CanRefer(Guid staffId) => staffId == AssignedToStaffId || _referrals.Any(r => r.ReferredToStaffId == staffId);
+
+    /// <summary>
+    /// Forwards the task to another staff member with a note — does *not* change
+    /// <see cref="AssignedToStaffId"/> (the official assignee never changes via
+    /// referral, per product decision). Caller authorization (only the assignee
+    /// or a past referral recipient may call this) is enforced by
+    /// <c>TaskService.ReferAsync</c>, not here — this method just records the
+    /// referral once that's already been checked.
+    /// </summary>
+    public void Refer(Guid referredByStaffId, Guid referredToStaffId, string note)
+    {
+        EnsureEditable();
+
+        _referrals.Add(TaskReferral.Create(referredByStaffId, referredToStaffId, note));
     }
 
     public void MarkAsDone()

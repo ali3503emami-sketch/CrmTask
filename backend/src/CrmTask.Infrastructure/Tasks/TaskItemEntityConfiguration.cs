@@ -75,5 +75,20 @@ public class TaskItemEntityConfiguration : IEntityTypeConfiguration<TaskItem>
                         v => v.Aggregate(0, (hash, s) => HashCode.Combine(hash, s.GetHashCode())),
                         v => v.ToList()));
         });
+
+        // Referrals is a read-only property (IReadOnlyList<TaskReferral>); EF Core
+        // finds the "_referrals" backing field by naming convention automatically.
+        builder.OwnsMany(t => t.Referrals, referrals =>
+        {
+            referrals.ToTable("TaskReferrals");
+            referrals.WithOwner().HasForeignKey("TaskItemId");
+            referrals.HasKey(r => r.Id);
+
+            referrals.Property(r => r.Note)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            referrals.Property(r => r.ReferredAtShamsi).HasMaxLength(10);
+        });
     }
 }

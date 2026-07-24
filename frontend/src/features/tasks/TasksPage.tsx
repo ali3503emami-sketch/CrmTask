@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Button, Card, Form, Input, message, Modal, Select, Space, Statistic } from 'antd'
+import { useState } from 'react'
+import { Button, Card, Empty, Form, Input, message, Modal, Select, Statistic } from 'antd'
 import { PersianCalendar } from '../../shared/date/PersianCalendar'
 import { PersianDateTimeField } from '../../shared/date/PersianDateTimeField'
 import { useCurrentUser } from '../../shared/currentUser/CurrentUserContext'
@@ -10,22 +10,9 @@ import { useStaff } from '../staff/useStaff'
 import { useCustomers } from '../customers/useCustomers'
 import { TaskDetailPanel } from './TaskDetailPanel'
 import { TaskListTable } from './TaskListTable'
-import type { ChecklistFieldType } from './types'
-
-const fieldTypeOptions: { value: ChecklistFieldType; label: string }[] = [
-  { value: 'Checkbox', label: 'چک‌باکس' },
-  { value: 'Dropdown', label: 'کشو' },
-  { value: 'ListBox', label: 'لیست‌باکس' },
-  { value: 'TextBox', label: 'متن' },
-]
-
-const choiceFieldTypes: ChecklistFieldType[] = ['Dropdown', 'ListBox']
-
-interface ChecklistFieldFormValue {
-  label: string
-  fieldType: ChecklistFieldType
-  options?: string
-}
+import { ChecklistFieldsEditor } from './ChecklistFieldsEditor'
+import { choiceFieldTypes, parseDropdownOptions, type ChecklistFieldFormValue } from './checklistFieldTypes'
+import type { TaskItem } from './types'
 
 interface CreateTaskFormValues {
   title: string
@@ -34,6 +21,14 @@ interface CreateTaskFormValues {
   customerId?: string
   assignedToStaffId: string
   checklistFields?: ChecklistFieldFormValue[]
+}
+
+function isMyTask(task: TaskItem, currentStaffId: string): boolean {
+  return (
+    task.assignedToStaffId === currentStaffId ||
+    task.createdByStaffId === currentStaffId ||
+    task.referrals.some((r) => r.referredToStaffId === currentStaffId)
+  )
 }
 
 export function TasksPage() {
@@ -49,7 +44,8 @@ export function TasksPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showAllForDay, setShowAllForDay] = useState(false)
 
-  const selectedTask = (tasks ?? []).find((t) => t.id === selectedTaskId) ?? null
+  const myTasks = currentStaffId ? (tasks ?? []).filter((t) => isMyTask(t, currentStaffId)) : []
+  const selectedTask = myTasks.find((t) => t.id === selectedTaskId) ?? null
 
   const staffNameById = new Map((staff ?? []).map((s) => [s.id, s.fullName]))
   const customerNameById = new Map((customers ?? []).map((c) => [c.id, c.name]))
@@ -59,10 +55,9 @@ export function TasksPage() {
     setShowAllForDay(false)
   }
 
-  const displayedTasks = useMemo(() => {
-    if (!selectedDate) return tasks ?? []
-    return (tasks ?? []).filter((t) => t.dueAt.slice(0, 10) === selectedDate && (showAllForDay || t.status === 'Open'))
-  }, [tasks, selectedDate, showAllForDay])
+  const displayedTasks = selectedDate
+    ? myTasks.filter((t) => t.dueAt.slice(0, 10) === selectedDate && (showAllForDay || t.status === 'Open'))
+    : myTasks
 
   const handleOpenCreateModal = () => {
     if (!currentStaffId) {
@@ -91,19 +86,14 @@ export function TasksPage() {
       checklistFields: (values.checklistFields ?? []).map((f) => ({
         label: f.label,
         fieldType: f.fieldType,
-        options: choiceFieldTypes.includes(f.fieldType)
-          ? (f.options ?? '')
-              .split(',')
-              .map((o) => o.trim())
-              .filter(Boolean)
-          : null,
+        options: choiceFieldTypes.includes(f.fieldType) ? parseDropdownOptions(f.options ?? '') : null,
       })),
     })
     form.resetFields()
     setIsModalOpen(false)
   }
 
-  const openTasksCount = (tasks ?? []).filter((t) => t.status === 'Open').length
+  const openTasksCount = myTasks.filter((t) => t.status === 'Open').length
 
   return (
     <div>
@@ -134,13 +124,17 @@ export function TasksPage() {
           )
         }
       >
-        <TaskListTable
-          tasks={displayedTasks}
-          isLoading={isLoading}
-          staffNameById={staffNameById}
-          onView={setSelectedTaskId}
-          onMarkDone={(taskId) => markDone.mutate(taskId)}
-        />
+        {!currentStaffId ? (
+          <Empty description="لطفاً ابتدا مشخص کنید شما کیستید." />
+        ) : (
+          <TaskListTable
+            tasks={displayedTasks}
+            isLoading={isLoading}
+            staffNameById={staffNameById}
+            onView={setSelectedTaskId}
+            onMarkDone={(taskId) => markDone.mutate(taskId)}
+          />
+        )}
       </Card>
 
       <Modal
@@ -176,45 +170,7 @@ export function TasksPage() {
             <Select options={(staff ?? []).map((s) => ({ value: s.id, label: s.fullName }))} />
           </Form.Item>
 
-          <Form.List name="checklistFields">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field, index) => (
-                  <Space key={field.key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
-                    <Form.Item
-                      name={[field.name, 'label']}
-                      label={`برچسب آیتم ${index + 1}`}
-                      rules={[{ required: true, message: 'برچسب الزامی است' }]}
-                    >
-                      <Input />
-                    </Form.Item>
-                    <Form.Item name={[field.name, 'fieldType']} label="نوع" initialValue="TextBox">
-                      <Select style={{ width: 120 }} options={fieldTypeOptions} />
-                    </Form.Item>
-                    <Form.Item
-                      noStyle
-                      shouldUpdate={(prev: CreateTaskFormValues, cur: CreateTaskFormValues) =>
-                        prev.checklistFields?.[index]?.fieldType !== cur.checklistFields?.[index]?.fieldType
-                      }
-                    >
-                      {({ getFieldValue }) => {
-                        const fieldType: ChecklistFieldType = getFieldValue(['checklistFields', field.name, 'fieldType'])
-                        return choiceFieldTypes.includes(fieldType) ? (
-                          <Form.Item name={[field.name, 'options']} label="گزینه‌ها (با کاما جدا کنید)">
-                            <Input />
-                          </Form.Item>
-                        ) : null
-                      }}
-                    </Form.Item>
-                    <Button onClick={() => remove(field.name)}>حذف</Button>
-                  </Space>
-                ))}
-                <Button onClick={() => add({ fieldType: 'TextBox' })} block style={{ marginBottom: 16 }}>
-                  افزودن آیتم چک‌لیست
-                </Button>
-              </>
-            )}
-          </Form.List>
+          <ChecklistFieldsEditor />
 
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={createTask.isPending} block>
@@ -230,6 +186,7 @@ export function TasksPage() {
           assigneeName={staffNameById.get(selectedTask.assignedToStaffId) ?? '—'}
           customerName={selectedTask.customerId ? customerNameById.get(selectedTask.customerId) : undefined}
           customers={customers ?? []}
+          staff={staff ?? []}
           open
           onClose={() => setSelectedTaskId(null)}
         />

@@ -1,6 +1,14 @@
 import type { MenuProps } from 'antd'
 
-export type PageKey = 'dashboard' | 'staff' | 'positions' | 'customerCategories' | 'activityFields' | 'customers' | 'tasks'
+export type PageKey =
+  | 'dashboard'
+  | 'staff'
+  | 'positions'
+  | 'customerCategories'
+  | 'activityFields'
+  | 'customers'
+  | 'tasks'
+  | 'settings'
 
 export const menuItems: MenuProps['items'] = [
   {
@@ -25,5 +33,10 @@ export const menuItems: MenuProps['items'] = [
       },
       { key: 'tasks', label: 'انجام کار' },
     ],
+  },
+  {
+    key: 'tools-group',
+    label: 'ابزار',
+    children: [{ key: 'settings', label: 'تنظیمات' }],
   },
 ]

@@ -13,7 +13,8 @@ public class TasksController(
     ICustomerService customerService,
     IStaffService staffService,
     IValidator<CreateTaskRequest> createValidator,
-    IValidator<UpdateTaskRequest> updateValidator) : ControllerBase
+    IValidator<UpdateTaskRequest> updateValidator,
+    IValidator<ReferTaskRequest> referValidator) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<TaskItemDto>>> GetAll([FromQuery] Guid? customerId, CancellationToken cancellationToken)
@@ -76,6 +77,11 @@ public class TasksController(
             return ValidationProblem(ModelState);
         }
 
+        if (await staffService.GetByIdAsync(request.AssignedToStaffId, cancellationToken) is null)
+        {
+            return NotFound($"Staff member {request.AssignedToStaffId} was not found.");
+        }
+
         if (request.CustomerId.HasValue && await customerService.GetByIdAsync(request.CustomerId.Value, cancellationToken) is null)
         {
             return NotFound($"Customer {request.CustomerId} was not found.");
@@ -85,6 +91,10 @@ public class TasksController(
         {
             var task = await taskService.UpdateAsync(id, request, cancellationToken);
             return task is null ? NotFound() : Ok(task);
+        }
+        catch (TaskAuthorizationException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
         }
         catch (InvalidOperationException ex)
         {
@@ -111,6 +121,40 @@ public class TasksController(
         {
             var task = await taskService.ReassignAsync(id, request.StaffId, cancellationToken);
             return task is null ? NotFound() : Ok(task);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+    }
+
+    [HttpPost("{id:guid}/refer")]
+    public async Task<ActionResult<TaskItemDto>> Refer(Guid id, ReferTaskRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await referValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            foreach (var error in validationResult.Errors)
+            {
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        if (await staffService.GetByIdAsync(request.ReferredToStaffId, cancellationToken) is null)
+        {
+            return NotFound($"Staff member {request.ReferredToStaffId} was not found.");
+        }
+
+        try
+        {
+            var task = await taskService.ReferAsync(id, request, cancellationToken);
+            return task is null ? NotFound() : Ok(task);
+        }
+        catch (TaskAuthorizationException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
         }
         catch (InvalidOperationException ex)
         {

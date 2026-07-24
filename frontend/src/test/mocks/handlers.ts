@@ -4,6 +4,7 @@ import type { Contact } from '../../features/contacts/types'
 import type { Contract, ContractStatus } from '../../features/contracts/types'
 import type { StaffMember } from '../../features/staff/types'
 import type { TaskItem } from '../../features/tasks/types'
+import type { AppSettings } from '../../features/settings/types'
 import type { ReferenceListItem } from '../../shared/referenceData/types'
 import { toShamsi } from './toShamsi'
 
@@ -50,6 +51,7 @@ const initialTasks: TaskItem[] = []
 const initialPositions: ReferenceListItem[] = []
 const initialCustomerCategories: ReferenceListItem[] = []
 const initialActivityFields: ReferenceListItem[] = []
+const initialSettings: AppSettings = { taskUpcomingWindowDays: 3, contractEndingWindowDays: 30 }
 
 // Mutable copies so a POST followed by a GET behaves like a real backend within
 // a test; resetMockData() (called in test/setup.ts's afterEach) undoes any
@@ -62,6 +64,7 @@ export let sampleTasks: TaskItem[] = [...initialTasks]
 export let samplePositions: ReferenceListItem[] = [...initialPositions]
 export let sampleCustomerCategories: ReferenceListItem[] = [...initialCustomerCategories]
 export let sampleActivityFields: ReferenceListItem[] = [...initialActivityFields]
+export let sampleSettings: AppSettings = { ...initialSettings }
 
 export function resetMockCustomers() {
   sampleCustomers = [...initialCustomers]
@@ -72,6 +75,7 @@ export function resetMockCustomers() {
   samplePositions = [...initialPositions]
   sampleCustomerCategories = [...initialCustomerCategories]
   sampleActivityFields = [...initialActivityFields]
+  sampleSettings = { ...initialSettings }
 }
 
 function referenceListHandlers(route: string, items: () => ReferenceListItem[], setItems: (items: ReferenceListItem[]) => void) {
@@ -221,6 +225,7 @@ export const handlers = [
         options: f.options ?? [],
         value: null,
       })),
+      referrals: [],
     }
     sampleTasks.push(created)
     return HttpResponse.json(created, { status: 201 })
@@ -229,12 +234,50 @@ export const handlers = [
     const task = sampleTasks.find((t) => t.id === params.taskId)
     if (!task) return new HttpResponse(null, { status: 404 })
     if (task.status === 'Done') return new HttpResponse('Task is already done and cannot be edited.', { status: 409 })
-    const body = (await request.json()) as { title: string; description: string; dueAt: string; customerId: string | null }
+    const body = (await request.json()) as {
+      title: string
+      description: string
+      dueAt: string
+      customerId: string | null
+      assignedToStaffId: string
+      requestedByStaffId: string
+      checklistFields: { label: string; fieldType: TaskItem['checklistItems'][number]['fieldType']; options: string[] | null }[]
+    }
+    if (body.requestedByStaffId !== task.createdByStaffId) {
+      return new HttpResponse('Only the staff member who created this task may edit it.', { status: 403 })
+    }
     task.title = body.title
     task.description = body.description
     task.dueAt = body.dueAt
     task.dueAtShamsi = toShamsi(body.dueAt)
     task.customerId = body.customerId
+    task.assignedToStaffId = body.assignedToStaffId
+    task.checklistItems = body.checklistFields.map((f) => ({
+      id: crypto.randomUUID(),
+      label: f.label,
+      fieldType: f.fieldType,
+      options: f.options ?? [],
+      value: null,
+    }))
+    return HttpResponse.json(task)
+  }),
+  http.post('*/api/tasks/:taskId/refer', async ({ request, params }) => {
+    const task = sampleTasks.find((t) => t.id === params.taskId)
+    if (!task) return new HttpResponse(null, { status: 404 })
+    const body = (await request.json()) as { referredByStaffId: string; referredToStaffId: string; note: string }
+    const canRefer =
+      body.referredByStaffId === task.assignedToStaffId ||
+      task.referrals.some((r) => r.referredToStaffId === body.referredByStaffId)
+    if (!canRefer) {
+      return new HttpResponse('Only the assignee or a previous referral recipient may refer this task.', { status: 403 })
+    }
+    task.referrals.push({
+      id: crypto.randomUUID(),
+      referredByStaffId: body.referredByStaffId,
+      referredToStaffId: body.referredToStaffId,
+      note: body.note,
+      referredAtShamsi: toShamsi(new Date().toISOString()),
+    })
     return HttpResponse.json(task)
   }),
   http.post('*/api/tasks/:taskId/mark-done', ({ params }) => {
@@ -266,4 +309,9 @@ export const handlers = [
     () => sampleActivityFields,
     (items) => (sampleActivityFields = items),
   ),
+  http.get('*/api/settings', () => HttpResponse.json(sampleSettings)),
+  http.put('*/api/settings', async ({ request }) => {
+    sampleSettings = (await request.json()) as AppSettings
+    return HttpResponse.json(sampleSettings)
+  }),
 ]

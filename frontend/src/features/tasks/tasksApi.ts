@@ -1,5 +1,5 @@
 import { httpClient } from '../../shared/api/httpClient'
-import type { CreateTaskInput, TaskItem, UpdateTaskInput } from './types'
+import type { CreateTaskInput, ReferTaskInput, TaskItem, UpdateTaskInput } from './types'
 
 export const tasksApi = {
   getAll: () => httpClient.get<TaskItem[]>('/api/tasks'),
@@ -8,4 +8,5 @@ export const tasksApi = {
   markAsDone: (taskId: string) => httpClient.post<TaskItem>(`/api/tasks/${taskId}/mark-done`, undefined),
   setChecklistItemValue: (taskId: string, checklistItemId: string, value: string | null) =>
     httpClient.put<TaskItem>(`/api/tasks/${taskId}/checklist-items/${checklistItemId}`, { value }),
+  refer: (taskId: string, input: ReferTaskInput) => httpClient.post<TaskItem>(`/api/tasks/${taskId}/refer`, input),
 }

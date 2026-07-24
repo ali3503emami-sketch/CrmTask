@@ -46,7 +46,7 @@ Cross-feature references go through the *parent's* service, not the repository d
 
 **Fix** (in `CustomerRepository.SaveChangesAsync`, not in the domain — this is an EF-specific concern): before saving, for every tracked `CustomerPersonnel` in `Modified` state, call `entry.GetDatabaseValuesAsync()` (EF's own built-in "does a row with this key actually exist" check); if it returns `null`, the entry is re-marked `Added`. A few extra per-row existence checks only on the (small, infrequent) personnel-edit path — correct beats clever here.
 
-**If this bites again**: any owned collection where new items can be added to an *already-saved* parent (not just at initial creation) needs this same fix. `ChecklistItem` doesn't need it *today* only because nothing currently adds new checklist items to an existing task after creation — if that changes, apply the identical fix to `TaskRepository`.
+**This did in fact bite again**: once Tasks got full edit (creator can replace the checklist wholesale, and referrals get added to an already-persisted task — see below), `TaskRepository.SaveChangesAsync` needed the identical fix, generalized across *both* of `TaskItem`'s owned collections (`ChecklistItem` and `TaskReferral`): collect `Modified`-state entries from both `ChangeTracker.Entries<ChecklistItem>()` and `Entries<TaskReferral>()`, `Cast<EntityEntry>()` so they can share one loop, and re-mark as `Added` whenever `GetDatabaseValuesAsync()` comes back `null`. Same rule going forward: any owned collection that gains items on an already-saved parent (not just at initial creation) needs this fix in its repository's `SaveChangesAsync`.
 
 ### `ReferenceData` — one shared implementation for three identical lookup lists
 
@@ -63,6 +63,22 @@ Fields elsewhere that read from these lists (`StaffMember.Position`, `CustomerPe
 Adding `CreatedByStaffId` (non-nullable `Guid`) to the already-populated `Tasks` table crashed on `dotnet run` against the real dev database: `dotnet ef migrations add` generates `ADD COLUMN ... DEFAULT '00000000-0000-0000-0000-000000000000'` for existing rows (the CLR default for a non-nullable value type) — then the very next migration step, `ALTER TABLE ADD CONSTRAINT FK_Tasks_StaffMembers_CreatedByStaffId`, fails immediately because no `StaffMembers` row has that all-zero id.
 
 **Fix**: added a backfill `migrationBuilder.Sql("UPDATE [Tasks] SET [CreatedByStaffId] = [AssignedToStaffId];")` between the `AddColumn` and `AddForeignKey` steps in the generated migration — existing tasks' already-valid assignee is the most sensible available stand-in for an unknown historical creator. **This class of bug only shows up against a database that already has rows** (an empty/fresh dev or CI database never hits it) — caught here specifically because dev points at a real, populated SQL Server instance rather than a throwaway one. Any future non-nullable FK column added to a table that might already have data needs the same treatment: backfill before adding the constraint, not after.
+
+### A second real-data gotcha: removing an enum value that's already persisted breaks every read that touches it
+
+`ChecklistFieldType.ListBox` was removed (replaced by `MultilineText` — the type list is now Checkbox/TextBox/MultilineText/Dropdown, per product decision). The enum is stored as a plain string via `HasConversion<string>()` with no DB-level CHECK constraint, so removing the C# enum member doesn't touch existing rows at all — but the real dev database already had tasks with `FieldType = 'ListBox'` checklist items from before. The very next `GET /api/tasks` after deploying the enum change threw `InvalidOperationException: Cannot convert string value 'ListBox' ... to any value in the mapped 'ChecklistFieldType' enum` for *every* request that touched one of those tasks — which broke the whole list, not just the affected row, and made it look like newly-created tasks weren't being saved (the POST succeeded; the list's next GET, needed to show it, is what failed).
+
+**Fix**: a follow-up migration with no schema change, just a data fix — `migrationBuilder.Sql("UPDATE [TaskChecklistItems] SET [FieldType] = 'Dropdown' WHERE [FieldType] = 'ListBox';")` (ListBox and Dropdown were both choice-fields with an identical `Options` shape, so nothing is lost in the remap). **Removing an enum value is a data migration, not just a code change, the moment real rows might already hold that value** — same "does dev already have data" risk as the FK gotcha above, just for enum columns instead of FK columns.
+
+### Task referrals (`ارجاع`) are tracked separately from `AssignedToStaffId` — referring never reassigns
+
+A task can be "referred" (`POST /api/tasks/{id}/refer`) to another staff member with a required note — but per product decision, this **never changes `AssignedToStaffId`**. The official assignee stays the official assignee forever; referring just means "I'm forwarding this to someone else to act on," tracked as full history in a new owned collection, `TaskItem.Referrals` (`TaskReferral`: `ReferredByStaffId`, `ReferredToStaffId`, `Note`, `ReferredAt(+Shamsi)`), not just the latest hop. `TaskItem.CanRefer(staffId)` — true for the assignee *or* anyone who's ever appeared as a `ReferredToStaffId` — decides two things at once: who's allowed to refer the task onward (enforced in `TaskService.ReferAsync`, throwing `TaskAuthorizationException` → HTTP 403 on failure), and whose "کارهای جاری" list the task shows up in on the frontend (see `TasksPage`'s `isMyTask`) alongside assignee/creator. There's a separate, older `POST /api/tasks/{id}/reassign` endpoint (`TaskItem.Reassign`) that *does* change `AssignedToStaffId` — it predates referrals, isn't wired into the frontend, and is a genuinely different operation; don't confuse the two.
+
+Editing a task's full fields (title/description/due date/customer/**assignee**) plus its checklist is restricted to the creator only (`TaskService.UpdateAsync` checks `RequestedByStaffId == CreatedByStaffId`, else `TaskAuthorizationException`). Checklist edits are a **full blind replace** (`TaskItem.ReplaceChecklist`, same `Clear()`+`AddRange()` pattern as `Customer.ReplacePersonnel`) — editing the checklist through the UI resets every item's already-entered `Value` to null, it doesn't try to preserve values for items that "look the same." This was a deliberate simplicity choice (matching the existing Personnel precedent) rather than building an item-by-item reconciliation the requirements didn't ask for; revisit only if losing in-progress checklist values on edit turns out to matter in practice.
+
+### Settings (`ابزار` > `تنظیمات`) — a global, single-row config, not per-user
+
+`AppSettings` (`Domain/Settings/`) is deliberately a **singleton row** (`AppSettings.SingletonId`, a fixed well-known `Guid`), not a per-staff-member preference — a firm product decision, since there's no real per-user auth yet to hang a preference off of. `SettingsRepository.GetAsync()` is a get-or-create: if the row doesn't exist yet, it creates and persists `AppSettings.CreateDefault()` (`TaskUpcomingWindowDays = 3`, `ContractEndingWindowDays = 30`) rather than requiring a seed step. `ContractEndingWindowDays` **replaced** `Contract`'s old hardcoded `ExpiringSoonWindowDays = 30` constant — `Contract.GetStatus` now takes the window as a parameter, and `ContractService` fetches it from `ISettingsRepository` before mapping every contract to its DTO (once per list call, not once per contract). `TaskUpcomingWindowDays` is purely a frontend concern — the Dashboard's "کارهای جاری" tab filters to tasks due within that many days (or already overdue), computed client-side against `useAppSettings()`; the backend doesn't know about it.
 
 ### Commands
 
@@ -84,14 +100,16 @@ frontend/
   src/
     main.tsx              # QueryClientProvider + antd ConfigProvider (RTL/theme/locale) wiring
     App.tsx                # Thin shell: CurrentUserProvider + header (title + CurrentUserPicker)
-    # + a sidebar Ant Design Menu (mode="inline"). One top-level "کاربر" (User)
-    # menu group for now — future role-based menus would be sibling top-level
-    # groups, not nested under it — with: داشبورد (Dashboard, the default/landing
-    # page), اطلاعات پایه (Basic Info: Staff, Positions, Customer Categories,
-    # Activity Fields), امور مشتریان (Customer Affairs: Customers), and انجام کار
-    # (Do Task: the full TasksPage). `pageComponents: Record<PageKey, () => JSX.Element>`
-    # maps menu item keys straight to page components — add a new page by adding
-    # one menu item + one map entry, no routing library involved.
+    # + a sidebar Ant Design Menu (mode="inline"). Two top-level sibling menu
+    # groups: "کاربر" (User) — داشبورد (Dashboard, the default/landing page),
+    # اطلاعات پایه (Basic Info: Staff, Positions, Customer Categories, Activity
+    # Fields), امور مشتریان (Customer Affairs: Customers), انجام کار (Do Task:
+    # the full TasksPage) — and "ابزار" (Tools) — currently just تنظیمات
+    # (Settings). Future role-based menus are further sibling top-level groups,
+    # same pattern as ابزار, not nested under کاربر.
+    # `pageComponents: Record<PageKey, () => JSX.Element>` maps menu item keys
+    # straight to page components — add a new page by adding one menu item +
+    # one map entry, no routing library involved.
     theme.ts               # Ant Design theme tokens (see frontend-design-system.md)
     shared/
       api/httpClient.ts    # Thin fetch wrapper (base URL from VITE_API_BASE_URL)

@@ -133,11 +133,21 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
     }
 
     [Fact]
-    public async Task Update_WhileOpen_ChangesFields()
+    public async Task Update_ByCreator_ChangesFieldsAssigneeAndChecklist()
     {
         var staffId = await CreateStaffMemberAsync();
         var taskId = await CreateTaskAsync(staffId);
-        var json = """{"title":"عنوان جدید","description":"","dueAt":"2026-08-02T12:00:00Z","customerId":null}""";
+        var json = $$"""
+            {
+              "title": "عنوان جدید",
+              "description": "",
+              "dueAt": "2026-08-02T12:00:00Z",
+              "customerId": null,
+              "assignedToStaffId": "{{staffId}}",
+              "requestedByStaffId": "{{staffId}}",
+              "checklistFields": [ { "label": "آیتم جدید", "fieldType": "MultilineText", "options": null } ]
+            }
+            """;
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await _client.PutAsync($"/api/tasks/{taskId}", content);
@@ -145,6 +155,31 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("\"title\":\"عنوان جدید\"");
+        body.Should().Contain("آیتم جدید");
+    }
+
+    [Fact]
+    public async Task Update_ByNonCreator_Returns403()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var otherStaffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        var json = $$"""
+            {
+              "title": "عنوان جدید",
+              "description": "",
+              "dueAt": "2026-08-02T12:00:00Z",
+              "customerId": null,
+              "assignedToStaffId": "{{staffId}}",
+              "requestedByStaffId": "{{otherStaffId}}",
+              "checklistFields": []
+            }
+            """;
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PutAsync($"/api/tasks/{taskId}", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -153,12 +188,68 @@ public class TasksControllerTests(CustomApiFactory factory) : IClassFixture<Cust
         var staffId = await CreateStaffMemberAsync();
         var taskId = await CreateTaskAsync(staffId);
         await _client.PostAsync($"/api/tasks/{taskId}/mark-done", null);
-        var json = """{"title":"عنوان جدید","description":"","dueAt":"2026-08-02T12:00:00Z","customerId":null}""";
+        var json = $$"""
+            {
+              "title": "عنوان جدید",
+              "description": "",
+              "dueAt": "2026-08-02T12:00:00Z",
+              "customerId": null,
+              "assignedToStaffId": "{{staffId}}",
+              "requestedByStaffId": "{{staffId}}",
+              "checklistFields": []
+            }
+            """;
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await _client.PutAsync($"/api/tasks/{taskId}", content);
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Refer_ByAssignee_Returns200AndAddsReferral()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var otherStaffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        var json = $$"""{"referredByStaffId":"{{staffId}}","referredToStaffId":"{{otherStaffId}}","note":"لطفاً پیگیری کنید"}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync($"/api/tasks/{taskId}/refer", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("لطفاً پیگیری کنید");
+        body.Should().Contain($"\"assignedToStaffId\":\"{staffId}\"");
+    }
+
+    [Fact]
+    public async Task Refer_ByUnrelatedStaff_Returns403()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var otherStaffId = await CreateStaffMemberAsync();
+        var unrelatedStaffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        var json = $$"""{"referredByStaffId":"{{unrelatedStaffId}}","referredToStaffId":"{{otherStaffId}}","note":"یادداشت"}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync($"/api/tasks/{taskId}/refer", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Refer_WithEmptyNote_ReturnsValidationProblem()
+    {
+        var staffId = await CreateStaffMemberAsync();
+        var otherStaffId = await CreateStaffMemberAsync();
+        var taskId = await CreateTaskAsync(staffId);
+        var json = $$"""{"referredByStaffId":"{{staffId}}","referredToStaffId":"{{otherStaffId}}","note":""}""";
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _client.PostAsync($"/api/tasks/{taskId}/refer", content);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

@@ -62,12 +62,23 @@ public class ContractTests
     [InlineData(2027, 1, 15, ContractStatus.Ended)]
     [InlineData(2026, 12, 15, ContractStatus.ExpiringSoon)]
     [InlineData(2026, 3, 1, ContractStatus.Active)]
-    public void GetStatus_ClassifiesBasedOnEndDateAndToday(int year, int month, int day, ContractStatus expected)
+    public void GetStatus_ClassifiesBasedOnEndDateTodayAndWindow(int year, int month, int day, ContractStatus expected)
     {
         var today = new DateOnly(year, month, day);
         var contract = Contract.Create(CustomerId, "عنوان", 0m, StartDate, EndDate);
 
-        contract.GetStatus(today).Should().Be(expected);
+        contract.GetStatus(today, expiringSoonWindowDays: 30).Should().Be(expected);
+    }
+
+    [Fact]
+    public void GetStatus_UsesTheGivenWindowNotAFixedValue()
+    {
+        var today = new DateOnly(2026, 12, 15);
+        var contract = Contract.Create(CustomerId, "عنوان", 0m, StartDate, EndDate);
+
+        // 16 days before EndDate — outside a 10-day window, inside a 30-day one.
+        contract.GetStatus(today, expiringSoonWindowDays: 10).Should().Be(ContractStatus.Active);
+        contract.GetStatus(today, expiringSoonWindowDays: 30).Should().Be(ContractStatus.ExpiringSoon);
     }
 
     [Fact]

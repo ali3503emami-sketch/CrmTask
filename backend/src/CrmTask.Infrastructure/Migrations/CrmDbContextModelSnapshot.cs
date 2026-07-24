@@ -196,6 +196,23 @@ namespace CrmTask.Infrastructure.Migrations
                     b.ToTable("ReferenceListItems");
                 });
 
+            modelBuilder.Entity("CrmTask.Domain.Settings.AppSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ContractEndingWindowDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TaskUpcomingWindowDays")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppSettings");
+                });
+
             modelBuilder.Entity("CrmTask.Domain.Staff.StaffMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -391,7 +408,47 @@ namespace CrmTask.Infrastructure.Migrations
                                 .HasForeignKey("TaskItemId");
                         });
 
+                    b.OwnsMany("CrmTask.Domain.Tasks.TaskReferral", "Referrals", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Note")
+                                .IsRequired()
+                                .HasMaxLength(1000)
+                                .HasColumnType("nvarchar(1000)");
+
+                            b1.Property<DateTimeOffset>("ReferredAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("ReferredAtShamsi")
+                                .IsRequired()
+                                .HasMaxLength(10)
+                                .HasColumnType("nvarchar(10)");
+
+                            b1.Property<Guid>("ReferredByStaffId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ReferredToStaffId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("TaskItemId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("TaskItemId");
+
+                            b1.ToTable("TaskReferrals", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("TaskItemId");
+                        });
+
                     b.Navigation("ChecklistItems");
+
+                    b.Navigation("Referrals");
                 });
 #pragma warning restore 612, 618
         }

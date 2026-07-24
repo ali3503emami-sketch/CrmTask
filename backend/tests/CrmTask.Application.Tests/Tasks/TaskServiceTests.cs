@@ -107,25 +107,99 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_UpdatesFieldsAndPersists()
+    public async Task UpdateAsync_ByCreator_UpdatesFieldsAndChecklistAndPersists()
     {
         var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
-        var request = new UpdateTaskRequest("عنوان جدید", "توضیحات جدید", DueAt.AddDays(1), null);
+        var newAssigneeId = Guid.NewGuid();
+        var request = new UpdateTaskRequest(
+            "عنوان جدید",
+            "توضیحات جدید",
+            DueAt.AddDays(1),
+            CustomerId: null,
+            newAssigneeId,
+            RequestedByStaffId: CreatedByStaffId,
+            ChecklistFields: [new ChecklistFieldDefinition("آیتم جدید", ChecklistFieldType.Checkbox, null)]);
 
         var result = await _sut.UpdateAsync(task.Id, request);
 
         result!.Title.Should().Be("عنوان جدید");
+        result.AssignedToStaffId.Should().Be(newAssigneeId);
+        result.ChecklistItems.Should().ContainSingle(i => i.Label == "آیتم جدید");
         _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ByNonCreator_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        var request = new UpdateTaskRequest("عنوان جدید", string.Empty, DueAt, null, StaffId, RequestedByStaffId: StaffId, ChecklistFields: []);
+
+        var act = () => _sut.UpdateAsync(task.Id, request);
+
+        await act.Should().ThrowAsync<TaskAuthorizationException>();
     }
 
     [Fact]
     public async Task UpdateAsync_WhenTaskNotFound_ReturnsNull()
     {
         _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
-        var request = new UpdateTaskRequest("عنوان", string.Empty, DueAt, null);
+        var request = new UpdateTaskRequest("عنوان", string.Empty, DueAt, null, StaffId, RequestedByStaffId: CreatedByStaffId, ChecklistFields: []);
 
         var result = await _sut.UpdateAsync(Guid.NewGuid(), request);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ReferAsync_ByAssignee_AddsReferralAndPersists()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        var referredToId = Guid.NewGuid();
+        var request = new ReferTaskRequest(StaffId, referredToId, "لطفاً پیگیری کنید");
+
+        var result = await _sut.ReferAsync(task.Id, request);
+
+        result!.AssignedToStaffId.Should().Be(StaffId);
+        result.Referrals.Should().ContainSingle(r => r.ReferredToStaffId == referredToId);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReferAsync_ByUnrelatedStaff_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        var request = new ReferTaskRequest(Guid.NewGuid(), Guid.NewGuid(), "یادداشت");
+
+        var act = () => _sut.ReferAsync(task.Id, request);
+
+        await act.Should().ThrowAsync<TaskAuthorizationException>();
+    }
+
+    [Fact]
+    public async Task ReferAsync_ByPastReferralRecipient_Succeeds()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        var firstRecipient = Guid.NewGuid();
+        task.Refer(StaffId, firstRecipient, "ارجاع اول");
+        _repository.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        var request = new ReferTaskRequest(firstRecipient, Guid.NewGuid(), "ارجاع دوم");
+
+        var result = await _sut.ReferAsync(task.Id, request);
+
+        result!.Referrals.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ReferAsync_WhenTaskNotFound_ReturnsNull()
+    {
+        _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
+        var request = new ReferTaskRequest(StaffId, Guid.NewGuid(), "یادداشت");
+
+        var result = await _sut.ReferAsync(Guid.NewGuid(), request);
 
         result.Should().BeNull();
     }

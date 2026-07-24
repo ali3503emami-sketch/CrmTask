@@ -14,5 +14,7 @@ public interface ITaskService
 
     Task<TaskItemDto?> ReassignAsync(Guid taskId, Guid staffId, CancellationToken cancellationToken = default);
 
+    Task<TaskItemDto?> ReferAsync(Guid taskId, ReferTaskRequest request, CancellationToken cancellationToken = default);
+
     Task<TaskItemDto?> SetChecklistItemValueAsync(Guid taskId, Guid checklistItemId, string? value, CancellationToken cancellationToken = default);
 }

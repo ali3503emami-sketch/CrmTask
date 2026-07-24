@@ -138,18 +138,30 @@ public class TaskItemTests
     }
 
     [Fact]
-    public void Update_ChangesTitleDescriptionDueAtAndCustomer()
+    public void Update_ChangesTitleDescriptionDueAtCustomerAndAssignee()
     {
         var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         var newDueAt = DueAt.AddDays(1);
+        var newAssigneeId = Guid.NewGuid();
 
-        task.Update("عنوان جدید", "توضیحات جدید", newDueAt, CustomerId);
+        task.Update("عنوان جدید", "توضیحات جدید", newDueAt, CustomerId, newAssigneeId);
 
         task.Title.Should().Be("عنوان جدید");
         task.Description.Should().Be("توضیحات جدید");
         task.DueAt.Should().Be(newDueAt);
         task.DueAtShamsi.Should().Be(CrmTask.Domain.Shared.PersianDateConverter.ToShamsi(newDueAt));
         task.CustomerId.Should().Be(CustomerId);
+        task.AssignedToStaffId.Should().Be(newAssigneeId);
+    }
+
+    [Fact]
+    public void Update_WithEmptyAssignedToStaffId_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+
+        var act = () => task.Update("عنوان جدید", string.Empty, DueAt, null, Guid.Empty);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("assignedToStaffId");
     }
 
     [Fact]
@@ -158,7 +170,80 @@ public class TaskItemTests
         var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
         task.MarkAsDone();
 
-        var act = () => task.Update("عنوان جدید", string.Empty, DueAt, null);
+        var act = () => task.Update("عنوان جدید", string.Empty, DueAt, null, StaffId);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ReplaceChecklist_SwapsInNewItems()
+    {
+        var original = ChecklistItem.Create("قدیمی", ChecklistFieldType.TextBox, null);
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, [original]);
+        var replacement = ChecklistItem.Create("جدید", ChecklistFieldType.Checkbox, null);
+
+        task.ReplaceChecklist([replacement]);
+
+        task.ChecklistItems.Should().ContainSingle(i => i.Label == "جدید");
+    }
+
+    [Fact]
+    public void ReplaceChecklist_WhenTaskIsDone_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        task.MarkAsDone();
+
+        var act = () => task.ReplaceChecklist([]);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void CanRefer_ForAssignee_ReturnsTrue()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+
+        task.CanRefer(StaffId).Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanRefer_ForUnrelatedStaff_ReturnsFalse()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+
+        task.CanRefer(Guid.NewGuid()).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Refer_AddsReferralAndDoesNotChangeAssignee()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        var referredToId = Guid.NewGuid();
+
+        task.Refer(StaffId, referredToId, "لطفاً پیگیری کنید");
+
+        task.AssignedToStaffId.Should().Be(StaffId);
+        task.Referrals.Should().ContainSingle(r =>
+            r.ReferredByStaffId == StaffId && r.ReferredToStaffId == referredToId && r.Note == "لطفاً پیگیری کنید");
+    }
+
+    [Fact]
+    public void CanRefer_ForPastReferralRecipient_ReturnsTrue()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        var referredToId = Guid.NewGuid();
+        task.Refer(StaffId, referredToId, "لطفاً پیگیری کنید");
+
+        task.CanRefer(referredToId).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Refer_WhenTaskIsDone_Throws()
+    {
+        var task = TaskItem.Create("کار", string.Empty, DueAt, null, StaffId, CreatedByStaffId, []);
+        task.MarkAsDone();
+
+        var act = () => task.Refer(StaffId, Guid.NewGuid(), "یادداشت");
 
         act.Should().Throw<InvalidOperationException>();
     }

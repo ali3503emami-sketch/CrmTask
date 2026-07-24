@@ -6,7 +6,7 @@ namespace CrmTask.Domain.Tasks;
 /// </summary>
 public class ChecklistItem
 {
-    private static readonly ChecklistFieldType[] ChoiceFieldTypes = [ChecklistFieldType.Dropdown, ChecklistFieldType.ListBox];
+    private static readonly ChecklistFieldType[] ChoiceFieldTypes = [ChecklistFieldType.Dropdown];
     private readonly List<string> _options = [];
 
     private ChecklistItem()
@@ -58,7 +58,7 @@ public class ChecklistItem
         {
             case ChecklistFieldType.Checkbox when value is not (null or "true" or "false"):
                 throw new ArgumentException("Checkbox value must be \"true\" or \"false\".", nameof(value));
-            case ChecklistFieldType.Dropdown or ChecklistFieldType.ListBox when value is not null && !_options.Contains(value):
+            case ChecklistFieldType.Dropdown when value is not null && !_options.Contains(value):
                 throw new ArgumentException("Value must be one of the item's options.", nameof(value));
         }
 

@@ -7,11 +7,6 @@ namespace CrmTask.Domain.Contracts;
 /// </summary>
 public class Contract
 {
-    /// <summary>
-    /// Within this many days of <see cref="EndDate"/>, a contract counts as expiring soon.
-    /// </summary>
-    private const int ExpiringSoonWindowDays = 30;
-
     private Contract()
     {
         // Required by EF Core.
@@ -68,13 +63,19 @@ public class Contract
         };
     }
 
-    public ContractStatus GetStatus(DateOnly today)
+    /// <param name="today">The current date, per the injected <see cref="TimeProvider"/>.</param>
+    /// <param name="expiringSoonWindowDays">
+    /// Within this many days of <see cref="EndDate"/>, the contract counts as expiring
+    /// soon — a global, admin-configurable value (see <c>AppSettings.ContractEndingWindowDays</c>),
+    /// not a fixed constant, so callers must source it from Settings rather than hardcode it.
+    /// </param>
+    public ContractStatus GetStatus(DateOnly today, int expiringSoonWindowDays)
     {
         if (EndDate < today)
         {
             return ContractStatus.Ended;
         }
 
-        return EndDate <= today.AddDays(ExpiringSoonWindowDays) ? ContractStatus.ExpiringSoon : ContractStatus.Active;
+        return EndDate <= today.AddDays(expiringSoonWindowDays) ? ContractStatus.ExpiringSoon : ContractStatus.Active;
     }
 }

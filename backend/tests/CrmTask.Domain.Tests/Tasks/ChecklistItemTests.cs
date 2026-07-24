@@ -18,24 +18,39 @@ public class ChecklistItemTests
         item.Value.Should().BeNull();
     }
 
-    [Theory]
-    [InlineData(ChecklistFieldType.Dropdown)]
-    [InlineData(ChecklistFieldType.ListBox)]
-    public void Create_ChoiceField_WithoutOptions_Throws(ChecklistFieldType fieldType)
+    [Fact]
+    public void Create_Dropdown_WithoutOptions_Throws()
     {
-        var act = () => ChecklistItem.Create("وضعیت", fieldType, options: null);
+        var act = () => ChecklistItem.Create("وضعیت", ChecklistFieldType.Dropdown, options: null);
 
         act.Should().Throw<ArgumentException>().WithParameterName("options");
     }
 
-    [Theory]
-    [InlineData(ChecklistFieldType.Dropdown)]
-    [InlineData(ChecklistFieldType.ListBox)]
-    public void Create_ChoiceField_WithOptions_Succeeds(ChecklistFieldType fieldType)
+    [Fact]
+    public void Create_Dropdown_WithOptions_Succeeds()
     {
-        var item = ChecklistItem.Create("وضعیت", fieldType, ["انجام‌شده", "در حال انجام"]);
+        var item = ChecklistItem.Create("وضعیت", ChecklistFieldType.Dropdown, ["انجام‌شده", "در حال انجام"]);
 
         item.Options.Should().Equal("انجام‌شده", "در حال انجام");
+    }
+
+    [Fact]
+    public void Create_MultilineText_WithoutOptions_Succeeds()
+    {
+        var item = ChecklistItem.Create("توضیحات کامل", ChecklistFieldType.MultilineText, options: null);
+
+        item.FieldType.Should().Be(ChecklistFieldType.MultilineText);
+        item.Options.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetValue_ForMultilineText_AcceptsAnyText()
+    {
+        var item = ChecklistItem.Create("توضیحات کامل", ChecklistFieldType.MultilineText, null);
+
+        item.SetValue("خط اول\nخط دوم");
+
+        item.Value.Should().Be("خط اول\nخط دوم");
     }
 
     [Fact]

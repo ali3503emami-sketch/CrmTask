@@ -1,4 +1,4 @@
-export type ChecklistFieldType = 'Checkbox' | 'Dropdown' | 'ListBox' | 'TextBox'
+export type ChecklistFieldType = 'Checkbox' | 'Dropdown' | 'TextBox' | 'MultilineText'
 export type TaskItemStatus = 'Open' | 'Done'
 
 export interface ChecklistFieldDefinition {
@@ -15,6 +15,14 @@ export interface ChecklistItem {
   value: string | null
 }
 
+export interface TaskReferral {
+  id: string
+  referredByStaffId: string
+  referredToStaffId: string
+  note: string
+  referredAtShamsi: string
+}
+
 export interface TaskItem {
   id: string
   title: string
@@ -26,6 +34,7 @@ export interface TaskItem {
   createdByStaffId: string
   status: TaskItemStatus
   checklistItems: ChecklistItem[]
+  referrals: TaskReferral[]
 }
 
 export interface CreateTaskInput {
@@ -43,4 +52,13 @@ export interface UpdateTaskInput {
   description: string
   dueAt: string
   customerId: string | null
+  assignedToStaffId: string
+  requestedByStaffId: string
+  checklistFields: ChecklistFieldDefinition[]
+}
+
+export interface ReferTaskInput {
+  referredByStaffId: string
+  referredToStaffId: string
+  note: string
 }

@@ -12,4 +12,5 @@ public record TaskItemDto(
     Guid AssignedToStaffId,
     Guid CreatedByStaffId,
     TaskItemStatus Status,
-    IReadOnlyList<ChecklistItemDto> ChecklistItems);
+    IReadOnlyList<ChecklistItemDto> ChecklistItems,
+    IReadOnlyList<TaskReferralDto> Referrals);

@@ -46,7 +46,14 @@ public class TaskService(ITaskRepository repository) : ITaskService
             return null;
         }
 
-        task.Update(request.Title, request.Description, request.DueAt, request.CustomerId);
+        if (task.CreatedByStaffId != request.RequestedByStaffId)
+        {
+            throw new TaskAuthorizationException("Only the staff member who created this task may edit it.");
+        }
+
+        task.Update(request.Title, request.Description, request.DueAt, request.CustomerId, request.AssignedToStaffId);
+        var checklistItems = request.ChecklistFields.Select(f => ChecklistItem.Create(f.Label, f.FieldType, f.Options)).ToList();
+        task.ReplaceChecklist(checklistItems);
         await repository.SaveChangesAsync(cancellationToken);
 
         return ToDto(task);
@@ -94,10 +101,33 @@ public class TaskService(ITaskRepository repository) : ITaskService
         return ToDto(task);
     }
 
+    public async Task<TaskItemDto?> ReferAsync(Guid taskId, ReferTaskRequest request, CancellationToken cancellationToken = default)
+    {
+        var task = await repository.GetByIdAsync(taskId, cancellationToken);
+        if (task is null)
+        {
+            return null;
+        }
+
+        if (!task.CanRefer(request.ReferredByStaffId))
+        {
+            throw new TaskAuthorizationException("Only the assignee or a previous referral recipient may refer this task.");
+        }
+
+        task.Refer(request.ReferredByStaffId, request.ReferredToStaffId, request.Note);
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return ToDto(task);
+    }
+
     private static TaskItemDto ToDto(TaskItem task)
     {
         var checklistItems = task.ChecklistItems
             .Select(i => new ChecklistItemDto(i.Id, i.Label, i.FieldType, i.Options, i.Value))
+            .ToList();
+
+        var referrals = task.Referrals
+            .Select(r => new TaskReferralDto(r.Id, r.ReferredByStaffId, r.ReferredToStaffId, r.Note, r.ReferredAtShamsi))
             .ToList();
 
         return new TaskItemDto(
@@ -110,6 +140,7 @@ public class TaskService(ITaskRepository repository) : ITaskService
             task.AssignedToStaffId,
             task.CreatedByStaffId,
             task.Status,
-            checklistItems);
+            checklistItems,
+            referrals);
     }
 }

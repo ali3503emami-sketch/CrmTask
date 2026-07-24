@@ -8,6 +8,7 @@ import { PositionsPage } from './features/positions/PositionsPage'
 import { CustomerCategoriesPage } from './features/customerCategories/CustomerCategoriesPage'
 import { ActivityFieldsPage } from './features/activityFields/ActivityFieldsPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { SettingsPage } from './features/settings/SettingsPage'
 import { CurrentUserProvider } from './shared/currentUser/CurrentUserContext'
 import { CurrentUserPicker } from './shared/currentUser/CurrentUserPicker'
 import { AppMenu } from './shared/navigation/AppMenu'
@@ -24,6 +25,7 @@ const pageComponents: Record<PageKey, () => React.JSX.Element> = {
   activityFields: ActivityFieldsPage,
   customers: CustomersPage,
   tasks: TasksPage,
+  settings: SettingsPage,
 }
 
 function App() {

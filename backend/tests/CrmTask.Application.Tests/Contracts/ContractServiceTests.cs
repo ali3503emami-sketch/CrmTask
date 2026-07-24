@@ -1,6 +1,8 @@
 using CrmTask.Application.Contracts;
+using CrmTask.Application.Settings;
 using CrmTask.Application.Tests.TestSupport;
 using CrmTask.Domain.Contracts;
+using CrmTask.Domain.Settings;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -14,12 +16,14 @@ public class ContractServiceTests
     private static readonly DateOnly EndDate = new(2026, 12, 31);
 
     private readonly Mock<IContractRepository> _repository = new();
+    private readonly Mock<ISettingsRepository> _settingsRepository = new();
     private readonly FakeTimeProvider _timeProvider = new(new DateTimeOffset(2026, 12, 20, 0, 0, 0, TimeSpan.Zero));
     private readonly ContractService _sut;
 
     public ContractServiceTests()
     {
-        _sut = new ContractService(_repository.Object, _timeProvider);
+        _settingsRepository.Setup(r => r.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(AppSettings.CreateDefault());
+        _sut = new ContractService(_repository.Object, _settingsRepository.Object, _timeProvider);
     }
 
     [Fact]
@@ -45,6 +49,25 @@ public class ContractServiceTests
         var result = await _sut.CreateAsync(CustomerId, request);
 
         result.Status.Should().Be(ContractStatus.ExpiringSoon);
+    }
+
+    [Fact]
+    public async Task CreateAsync_UsesTheConfiguredWindow_NotAFixedThirtyDays()
+    {
+        // 11 days before end date — outside a configured 5-day window, so this
+        // must resolve to Active rather than the old hardcoded-30-day ExpiringSoon.
+        _settingsRepository.Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                var settings = AppSettings.CreateDefault();
+                settings.Update(3, 5);
+                return settings;
+            });
+        var request = new CreateContractRequest("قرارداد", 0m, StartDate, EndDate);
+
+        var result = await _sut.CreateAsync(CustomerId, request);
+
+        result.Status.Should().Be(ContractStatus.Active);
     }
 
     [Fact]
